@@ -1,0 +1,29 @@
+name: Check
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Check scripts
+        run: nix develop -c shellcheck check .agents/setup .agents/resume
+      - name: Test, lint and assemble
+        run: nix develop -c ./check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: split-voice-development
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/reports/tests/
+            app/build/reports/ui/
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: error

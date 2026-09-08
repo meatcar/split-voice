@@ -1,0 +1,39 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.github.meatcar.splitvoice'
+    compileSdk 35
+    buildToolsVersion '35.0.0'
+    defaultConfig {
+        applicationId 'com.github.meatcar.splitvoice'
+        minSdk 31
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+    buildFeatures { aidl true }
+    testOptions { unitTests.includeAndroidResources = true }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/licenses')
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+def licenseAssets = tasks.register('licenseAssets', Sync) {
+    from(rootProject.projectDir) {
+        include 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES'
+    }
+    into layout.buildDirectory.dir('generated/licenses')
+}
+tasks.named('preBuild') { dependsOn licenseAssets }
+
+dependencies {
+    compileOnly 'androidx.annotation:annotation:1.3.0'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+}

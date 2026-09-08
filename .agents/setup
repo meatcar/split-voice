@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Provision Nix and the repository's complete direnv environment in an Amp orb.
+# shellcheck disable=SC2016 # Profile expressions expand in the future login shell.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+repo_root="$PWD"
+SECONDS=0
+
+echo 'setup: installing Nix if missing'
+if [[ ! -x "$HOME/.nix-profile/bin/nix" ]] && ! command -v nix >/dev/null; then
+  installer="$(mktemp)"
+  trap 'rm -f "$installer"' EXIT
+  curl -fsSL https://nixos.org/nix/install -o "$installer"
+  sh "$installer" --no-daemon --yes --no-channel-add
+fi
+if [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.nix-profile/etc/profile.d/nix.sh"
+fi
+
+# Single-user Nix needs no daemon or sandbox namespaces in an orb.
+mkdir -p "$HOME/.config/nix"
+touch "$HOME/.config/nix/nix.conf"
+for setting in 'sandbox = false' 'experimental-features = nix-command flakes'; do
+  grep -Fqx "$setting" "$HOME/.config/nix/nix.conf" ||
+    printf '%s\n' "$setting" >> "$HOME/.config/nix/nix.conf"
+done
+
+echo "setup: loading devshell (${SECONDS}s)"
+if ! command -v direnv >/dev/null; then
+  nix profile install --inputs-from . nixpkgs#direnv
+fi
+direnv_bin="$(command -v direnv)"
+direnv allow .
+environment="$(direnv export bash)"
+eval "$environment"
+# direnv can return success after a failed .envrc. Check actual activation.
+[[ -n "${IN_NIX_SHELL:-}" ]] || { echo 'setup: devshell failed' >&2; exit 1; }
+
+# A login-shell hook must export the full .envrc, not just add binaries to PATH.
+# Keep the hook per checkout so installing another project cannot overwrite it.
+marker="# Amp Nix environment: $repo_root"
+if ! grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+  {
+    printf '\n%s\n' "$marker"
+    printf 'if [[ "$PWD" == %q || "$PWD" == %q/* ]] && [[ "${AMP_NIX_ENV_ROOT:-}" != %q ]]; then\n' "$repo_root" "$repo_root" "$repo_root"
+    printf '  export AMP_NIX_ENV_ROOT=%q\n' "$repo_root"
+    printf '  export PATH="$HOME/.nix-profile/bin:$PATH"\n'
+    printf '  eval "$(%q export bash)"\n' "$direnv_bin"
+    printf 'fi\n'
+  } >> "$HOME/.bash_profile"
+fi
+
+if [[ -f package.json ]]; then
+  echo "setup: installing Bun dependencies (${SECONDS}s)"
+  if [[ -f bun.lock || -f bun.lockb ]]; then
+    bun install --frozen-lockfile
+  else
+    bun install
+  fi
+fi
+echo "setup: ready (${SECONDS}s)"

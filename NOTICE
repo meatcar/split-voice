@@ -1,0 +1,15 @@
+Split Voice
+Copyright 2026 Split Voice contributors
+
+The Nix flake and .agents lifecycle scripts started from meatcar/nix-templates,
+flake-basic, revision 1e188267d7ac05b07452fa7b18a86764ab78df58.
+
+BTMicFix, by Endda / Doug Lynch, inspired the routing investigation.
+Reference: https://github.com/Endda/BTMicFix
+
+Shizuku API and provider 13.1.5
+Reference: https://github.com/RikkaApps/Shizuku-API
+License: MIT. Copyright (c) 2021 RikkaW.
+See THIRD_PARTY_NOTICES for the complete dependency notice.
+
+Build and test dependencies retain their own licenses.

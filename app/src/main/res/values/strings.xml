@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Split Voice</string>
+    <string name="open_shizuku">Open Shizuku</string>
+    <string name="connect">Connect</string>
+    <string name="add_tile">Add Quick Settings tile</string>
+    <string name="tile_manual">Edit Quick Settings to add Split Voice.</string>
+    <string name="tile_added">Tile added.</string>
+    <string name="tile_declined">Tile not added.</string>
+    <string name="check">Check routes</string>
+    <string name="restore">Restore</string>
+    <string name="notifications">Recovery notification</string>
+    <string name="notification_channel">Routing recovery</string>
+    <string name="notification_title">Restore pending</string>
+    <string name="notification_body">Stop Voice, then open controls to restore.</string>
+    <string name="controls">Open controls</string>
+</resources>

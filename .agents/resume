@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# No services or user authentication are required by these templates.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+if [[ ! -x "$HOME/.nix-profile/bin/nix" ]] && ! command -v nix >/dev/null; then
+  echo 'resume: Nix is missing; run .agents/setup' >&2
+  exit 1
+fi
+echo 'resume: Nix available; login shells load .envrc'
