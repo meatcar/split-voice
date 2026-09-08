@@ -47,6 +47,31 @@ the Nix-provided aapt2 binary. No build or test command contacts a phone.
 Development APKs use local signing keys. Build on the same machine to install
 updates over an existing build; CI generates a new key for each run.
 
+## Releases
+
+Release APKs use a permanent signing key. Obtainium follows the GitHub releases
+at `https://github.com/meatcar/split-voice` without additional filters.
+
+Configure these GitHub Actions settings once:
+
+- Secret `RELEASE_KEYSTORE_BASE64`: base64-encoded PKCS12 keystore, alias `split-voice`.
+- Secret `RELEASE_KEYSTORE_PASSWORD`: keystore and key password.
+- Variable `RELEASE_CERT_SHA256`: signing certificate's 64-character SHA-256 digest, without colons.
+
+Keep an encrypted backup of the keystore and password outside GitHub. Future
+updates need the same key. Git commit signing and APK signing use separate keys.
+
+To release, increase `versionCode` and set `versionName` in `app/build.gradle`.
+After checks pass on `main`, tag that commit `v<versionName>` and push the tag.
+The release workflow runs tests and lint, builds the release APK, checks its
+signature against the configured certificate, and publishes it with `SHA256SUMS`.
+Use a new version for each release; published APKs are not replaced.
+
+Development builds and release APKs have different signing keys. Restore any
+active routing, then uninstall the development build before installing a release.
+
+## Agent environments
+
 `.agents/setup` is for disposable Amp orbs only. Do not run it on an existing
 workstation. Use `nix develop` locally. Keep setup, resume and check executable.
 

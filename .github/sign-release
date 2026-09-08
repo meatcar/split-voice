@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+: "${ANDROID_HOME:?Run within nix develop}"
+: "${GITHUB_REF_NAME:?Set the release tag}"
+: "${RELEASE_KEYSTORE_BASE64:?Missing release keystore}"
+: "${RELEASE_KEYSTORE_PASSWORD:?Missing keystore password}"
+: "${RELEASE_CERT_SHA256:?Missing signing certificate fingerprint}"
+[[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+[[ "$RELEASE_CERT_SHA256" =~ ^[a-fA-F0-9]{64}$ ]]
+
+temporary=$(mktemp -d)
+trap 'rm -rf "$temporary"' EXIT
+printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$temporary/release.p12"
+unset RELEASE_KEYSTORE_BASE64
+
+tools="$ANDROID_HOME/build-tools/35.0.0"
+apk="split-voice-$GITHUB_REF_NAME.apk"
+"$tools/apksigner" sign --ks "$temporary/release.p12" \
+  --ks-key-alias split-voice --ks-pass env:RELEASE_KEYSTORE_PASSWORD \
+  --key-pass env:RELEASE_KEYSTORE_PASSWORD --v4-signing-enabled false \
+  --out "$temporary/$apk" app/build/outputs/apk/release/app-release-unsigned.apk
+"$tools/apksigner" verify --verbose --print-certs "$temporary/$apk" > "$temporary/verification.txt"
+fingerprint=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$temporary/verification.txt")
+[[ "$fingerprint" == "${RELEASE_CERT_SHA256,,}" ]]
+"$tools/zipalign" -c -P 16 4 "$temporary/$apk"
+
+mkdir -p dist
+cp "$temporary/$apk" "dist/$apk"
+sha256sum "dist/$apk" | sed 's|  dist/|  |' > dist/SHA256SUMS

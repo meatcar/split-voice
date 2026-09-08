@@ -14,3 +14,5 @@ local.properties
 *.jks
 *.keystore
 captures/
+*.p12
+dist/

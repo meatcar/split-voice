@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Test, lint and assemble
+        run: nix develop -c ./check testDebugUnitTest lintRelease assembleRelease
+      - name: Validate version
+        shell: bash
+        run: |
+          set -euo pipefail
+          metadata=app/build/outputs/apk/release/output-metadata.json
+          version=$(jq -er '.elements[0].versionName' "$metadata")
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$GITHUB_REF_NAME" == "v$version" ]]
+          jq -e '.applicationId == "com.github.meatcar.splitvoice" and (.elements | length == 1)' "$metadata"
+      - name: Sign and verify APK
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 }}
+        run: nix develop -c .github/sign-release
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/split-voice-$GITHUB_REF_NAME.apk" dist/SHA256SUMS \
+            --verify-tag --title "Split Voice $GITHUB_REF_NAME" --generate-notes

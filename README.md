@@ -13,7 +13,7 @@ Use a wireless microphone's receiver for voice input while listening through Blu
 
 ## Install
 
-Download the `split-voice-development` artifact from a successful [CI run](https://github.com/meatcar/split-voice/actions/workflows/check.yml), extract it, and open the APK on your phone. You can also [build it yourself](#build).
+Download the APK from [Releases](https://github.com/meatcar/split-voice/releases/latest), or add `https://github.com/meatcar/split-voice` in [Obtainium](https://obtainium.imranr.dev/) to install it and receive updates.
 
 Open Split Voice, tap **Connect**, and grant Shizuku access. Tap **Add Quick Settings tile**. On Android 12, add the tile manually from the Quick Settings editor.
 
