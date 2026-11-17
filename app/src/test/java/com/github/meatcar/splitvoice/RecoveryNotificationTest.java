@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 35)
+@Config(sdk = {31, 35})
 public class RecoveryNotificationTest {
     @Test public void reminderIsOptInAndHidingItDoesNotClearRecovery() throws Exception {
         var app = (SplitVoiceApplication) RuntimeEnvironment.getApplication();
