@@ -1,0 +1,29 @@
+name: Compatibility report
+description: Tell us whether Split Voice works with your phone, receiver and headphones
+labels: [compatibility]
+body:
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Tap Copy diagnostics in Split Voice and paste the result.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Receiver and headphone models
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options: [Works, Partly works, Does not work]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
