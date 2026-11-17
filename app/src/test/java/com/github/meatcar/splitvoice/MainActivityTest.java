@@ -6,7 +6,9 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Bundle;
 import android.os.Looper;
+import android.Manifest;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -17,6 +19,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers;
 
 import java.io.File;
@@ -26,7 +29,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 35, qualifiers = "w360dp-h640dp-mdpi")
+@Config(sdk = {31, 35}, qualifiers = "w360dp-h640dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class MainActivityTest {
     @Test public void disconnectedLaunchOffersSetupWithoutRoutingWrites() throws Exception {
@@ -119,6 +122,31 @@ public class MainActivityTest {
             assertTrue(report, report.contains("Audio mode: 3"));
             assertFalse(report, report.contains("AA:BB"));
             assertFalse(report, report.contains("11:22"));
+        }
+    }
+
+    @Config(sdk = 31) @Test public void androidTwelveExplainsManualTileSetupAndNeedsNoNotificationPermission() {
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            activity.findViewById(R.id.add_tile).performClick();
+            assertEquals("Edit Quick Settings to add Split Voice.", ShadowToast.getTextOfLatestToast());
+            CompoundButton notifications = activity.findViewById(R.id.notifications);
+            notifications.performClick();
+            assertTrue(notifications.isChecked());
+            assertTrue(RecoveryNotification.enabled(activity));
+            assertNull(shadowOf(activity).getLastRequestedPermission());
+        }
+    }
+
+    @Config(sdk = 35) @Test public void androidThirteenAsksForNotificationPermissionBeforeEnablingReminder() {
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            CompoundButton notifications = activity.findViewById(R.id.notifications);
+            notifications.performClick();
+            assertFalse(notifications.isChecked());
+            assertFalse(RecoveryNotification.enabled(activity));
+            assertEquals(Manifest.permission.POST_NOTIFICATIONS,
+                    shadowOf(activity).getLastRequestedPermission().requestedPermissions[0]);
         }
     }
 

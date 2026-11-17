@@ -11,6 +11,10 @@ changes in `RouteTrial` and `RouteService`; tile, Activity and notification code
 must use the application-owned controller. Do not introduce a second journal
 or worker. Test safety changes before changing the implementation.
 
+`./check` also enforces a line-coverage floor on everything except `RouteService`,
+which only a phone can exercise. UI and notification tests run on Android 12 (SDK 31)
+and 15 (SDK 35) so both sides of the Android 13 branches are covered.
+
 Transaction tests use an in-memory backend. Controller and tile tests simulate
 Binder replies. UI tests render the layouts with Robolectric.
 The test-only tile shadow fixes a missing `ShadowService` inheritance in
