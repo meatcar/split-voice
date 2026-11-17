@@ -4,7 +4,7 @@ set -euo pipefail
 : "${ANDROID_HOME:?Run with nix develop -c ./check}"
 root=$(dirname "$(realpath "$0")")
 if (( $# == 0 )); then
-  set -- testDebugUnitTest lintDebug assembleDebug
+  set -- testDebugUnitTest verifyCoverage lintDebug assembleDebug
 fi
 exec gradle -p "$root" --no-daemon --console=plain \
   "-Pandroid.aapt2FromMavenOverride=$ANDROID_HOME/build-tools/35.0.0/aapt2" "$@"
