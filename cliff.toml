@@ -1,0 +1,30 @@
+# NOTE: release notes only; see https://git-cliff.org/docs/configuration
+[changelog]
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {% if commit.scope and group != "Dependencies" %}**{{ commit.scope }}:** {% endif %}\
+{% if commit.breaking %}[breaking] {% endif %}\
+{{ commit.message | upper_first }} \
+([{{ commit.id | truncate(length=7, end="") }}](https://github.com/meatcar/split-voice/commit/{{ commit.id }}))\
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+topo_order_commits = true
+sort_commits = "oldest"
+# NOTE: commits that match no parser are left out. CI, docs, tests and agent files are not user-facing.
+commit_parsers = [
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Changes" },
+  { message = "^revert", group = "Reverts" },
+  { message = "^chore\\(deps", group = "Dependencies" },
+  { message = ".*", skip = true },
+]

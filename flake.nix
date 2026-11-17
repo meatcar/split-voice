@@ -34,7 +34,7 @@
           legacyPackages = pkgs;
           devShells.default = pkgs.mkShell {
             name = "split-voice";
-            packages = [ pkgs.jdk17 pkgs.gradle sdk pkgs.shellcheck ];
+            packages = [ pkgs.jdk17 pkgs.gradle sdk pkgs.shellcheck pkgs.git-cliff ];
             JAVA_HOME = "${pkgs.jdk17}";
             ANDROID_HOME = "${sdk}/libexec/android-sdk";
             ANDROID_SDK_ROOT = "${sdk}/libexec/android-sdk";
