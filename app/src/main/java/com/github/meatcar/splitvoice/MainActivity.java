@@ -13,6 +13,7 @@ import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.CompoundButton;
@@ -20,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public final class MainActivity extends Activity {
+    private static final String SHIZUKU = "moe.shizuku.privileged.api";
     private RouteController routes;
     private final Runnable listener = this::refresh;
 
@@ -36,6 +38,7 @@ public final class MainActivity extends Activity {
             if (routes.shizukuRunning()) routes.connect(true);
             else openShizuku();
         });
+        findViewById(R.id.developer_settings).setOnClickListener(view -> openDeveloperSettings());
         findViewById(R.id.check).setOnClickListener(view -> routes.refresh());
         findViewById(R.id.restore).setOnClickListener(view -> routes.restore());
         CompoundButton automatic = findViewById(R.id.auto_route);
@@ -82,6 +85,9 @@ public final class MainActivity extends Activity {
     private void refresh() {
         ((TextView) findViewById(R.id.status_title)).setText(routes.title());
         ((TextView) findViewById(R.id.status)).setText(routes.message());
+        ((TextView) findViewById(R.id.setup_steps)).setText(setupSteps());
+        findViewById(R.id.setup_steps).setVisibility(routes.connected() ? View.GONE : View.VISIBLE);
+        findViewById(R.id.developer_settings).setVisibility(routes.connected() || routes.shizukuRunning() ? View.GONE : View.VISIBLE);
         ((TextView) findViewById(R.id.connect)).setText(routes.shizukuRunning() ? R.string.connect : R.string.open_shizuku);
         findViewById(R.id.connect).setVisibility(routes.connected() ? View.GONE : View.VISIBLE);
         findViewById(R.id.connect).setEnabled(!routes.busy() && !routes.connected());
@@ -93,8 +99,24 @@ public final class MainActivity extends Activity {
         ((CompoundButton) findViewById(R.id.auto_route)).setChecked(AutoRoute.enabled(this));
     }
 
+    private String setupSteps() {
+        return String.join("\n",
+                step(R.string.step_installed, getPackageManager().getLaunchIntentForPackage(SHIZUKU) != null),
+                step(R.string.step_running, routes.shizukuRunning()),
+                step(R.string.step_permission, routes.permissionGranted()));
+    }
+
+    private String step(int label, boolean done) {
+        return getString(done ? R.string.step_done : R.string.step_todo, getString(label));
+    }
+
+    private void openDeveloperSettings() {
+        try { startActivity(new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)); }
+        catch (ActivityNotFoundException e) { startActivity(new Intent(Settings.ACTION_SETTINGS)); }
+    }
+
     private void openShizuku() {
-        Intent intent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
+        Intent intent = getPackageManager().getLaunchIntentForPackage(SHIZUKU);
         if (intent == null) intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/guide/setup/"));
         try { startActivity(intent); }
         catch (ActivityNotFoundException e) {

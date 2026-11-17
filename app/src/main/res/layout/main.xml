@@ -10,7 +10,11 @@
         <TextView android:id="@+id/status" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceMedium"
             android:layout_marginTop="8dp" android:layout_marginBottom="16dp" />
+        <TextView android:id="@+id/setup_steps" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceMedium"
+            android:lineSpacingMultiplier="1.2" android:layout_marginBottom="16dp" />
         <Button android:id="@+id/connect" style="@style/Action" android:text="@string/connect" />
+        <Button android:id="@+id/developer_settings" style="@style/Action" android:text="@string/developer_settings" />
         <Button android:id="@+id/check" style="@style/Action" android:text="@string/check" />
         <Button android:id="@+id/restore" style="@style/Action" android:text="@string/restore" />
         <Button android:id="@+id/add_tile" style="@style/Action" android:text="@string/add_tile" />
