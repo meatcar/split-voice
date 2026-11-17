@@ -4,6 +4,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.StatusBarManager;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -37,6 +39,11 @@ public final class MainActivity extends Activity {
         findViewById(R.id.check).setOnClickListener(view -> routes.refresh());
         findViewById(R.id.restore).setOnClickListener(view -> routes.restore());
         findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
+        findViewById(R.id.diagnostics).setOnClickListener(view -> {
+            getSystemService(ClipboardManager.class).setPrimaryClip(
+                    ClipData.newPlainText(getString(R.string.diagnostics), Diagnostics.report(this, routes)));
+            Toast.makeText(this, R.string.diagnostics_copied, Toast.LENGTH_SHORT).show();
+        });
         CompoundButton notifications = findViewById(R.id.notifications);
         notifications.setOnClickListener(view -> {
             if (notifications.isChecked() && Build.VERSION.SDK_INT >= 33

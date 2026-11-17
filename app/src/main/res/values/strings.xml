@@ -12,5 +12,7 @@
     <string name="notification_channel">Routing recovery</string>
     <string name="notification_title">Restore pending</string>
     <string name="notification_body">Stop Voice, then open controls to restore.</string>
+    <string name="diagnostics">Copy diagnostics</string>
+    <string name="diagnostics_copied">Diagnostics copied. Paste them into your bug report.</string>
     <string name="controls">Open controls</string>
 </resources>
