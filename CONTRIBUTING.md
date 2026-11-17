@@ -32,9 +32,10 @@ preferences before ending a session. Use paired wireless debugging for diagnosti
 
 ## Bug reports
 
-Include app version, phone model, Android/One UI version, receiver/headphone
-models, Shizuku status, exact app message, whether Voice was active, and separate
-microphone/playback observations. Say whether Restore succeeded.
+The issue templates ask for the output of **Copy diagnostics**. It covers the app
+version, phone model, Android/One UI version, Shizuku status and exact app message.
+Also include the receiver and headphone models, whether Voice was active, and
+separate microphone and playback observations. Say whether Restore succeeded.
 
 Redact device identifiers and personal content from logs and screenshots.
 
@@ -69,6 +70,14 @@ line. The workflow runs tests and lint, builds the release APK, checks its
 signature against the configured certificate, and publishes it with `SHA256SUMS`.
 Run it manually from the Actions tab to retry; it skips versions already released.
 Published APKs are not replaced.
+
+Release notes come from conventional commit messages (`feat`, `fix`, `perf`,
+`refactor`, `chore(deps)`) through `cliff.toml`. Other types stay out of the notes,
+so write those subjects for users. A release with none says so. The GitHub
+releases page is the changelog.
+
+`fastlane/metadata/android/` holds the store listing in the layout F-Droid and
+the Play Store read. Submitting the app to either store is a manual step.
 
 Development builds and release APKs have different signing keys. Restore any
 active routing, then uninstall the development build before installing a release.
