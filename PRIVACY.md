@@ -14,6 +14,8 @@ accounts, no ads and no crash reporting.
   include it.
 - **Permissions:** Shizuku access, which you grant, to change audio routing.
   Notification permission, which is optional, for the recovery notification.
+  Foreground service permission, used only while you have **Split automatically**
+  turned on, to watch for voice sessions. It stays off by default.
 - **Diagnostics:** **Copy diagnostics** puts a text summary on your clipboard
   only when you tap it. It lists the app and Android versions, phone model, Shizuku
   status, route state and audio device types. It never includes device addresses or

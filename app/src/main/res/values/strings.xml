@@ -50,4 +50,9 @@
     <string name="cannot_connect">Cannot connect: %1$s</string>
     <string name="tile_setup">Long-press Split Voice for Shizuku setup and recovery.</string>
     <string name="install_shizuku">Install Shizuku from shizuku.rikka.app</string>
+    <string name="auto_route">Split automatically</string>
+    <string name="auto_route_hint">Applies the split when a voice session starts and restores it when the session ends. A notification shows while this is on. Open the app after rebooting and restarting Shizuku.</string>
+    <string name="automatic_channel">Automatic split</string>
+    <string name="automatic_title">Automatic split is on</string>
+    <string name="automatic_body">Splits when a voice session starts. Restores when it ends.</string>
 </resources>
