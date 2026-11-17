@@ -4,6 +4,9 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.util.TypedValue;
 import android.os.Bundle;
 import android.os.Looper;
 import android.Manifest;
@@ -147,6 +150,35 @@ public class MainActivityTest {
             assertFalse(RecoveryNotification.enabled(activity));
             assertEquals(Manifest.permission.POST_NOTIFICATIONS,
                     shadowOf(activity).getLastRequestedPermission().requestedPermissions[0]);
+        }
+    }
+
+    @Test public void lightThemeUsesDarkTextOnLightBackground() throws Exception {
+        assertReadableTheme(false);
+    }
+
+    @Config(qualifiers = "w360dp-h640dp-night-mdpi") @Test public void darkThemeUsesLightTextOnDarkBackground() throws Exception {
+        assertReadableTheme(true);
+    }
+
+    @Config(sdk = 35) @Test public void launcherIconIsAdaptiveAndThemeable() throws Exception {
+        var app = RuntimeEnvironment.getApplication();
+        assertEquals(R.mipmap.ic_launcher, app.getApplicationInfo().icon);
+        var icon = app.getDrawable(R.mipmap.ic_launcher);
+        assertTrue(icon instanceof AdaptiveIconDrawable);
+        assertNotNull(((AdaptiveIconDrawable) icon).getMonochrome());
+    }
+
+    private static void assertReadableTheme(boolean dark) throws Exception {
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            var background = new TypedValue();
+            assertTrue(activity.getTheme().resolveAttribute(android.R.attr.colorBackground, background, true));
+            double backgroundLuminance = Color.luminance(background.data);
+            double textLuminance = Color.luminance(((TextView) activity.findViewById(R.id.status_title)).getCurrentTextColor());
+            assertEquals(dark, backgroundLuminance < 0.2);
+            assertEquals(dark, textLuminance > 0.6);
+            capture(activity.getWindow().getDecorView(), dark ? "setup-dark" : "setup-light");
         }
     }
 
