@@ -1,8 +1,9 @@
 Split Voice
 Copyright 2026 Split Voice contributors
 
-The Nix flake and .agents lifecycle scripts started from meatcar/nix-templates,
-flake-basic, revision 1e188267d7ac05b07452fa7b18a86764ab78df58.
+The Nix flake started from meatcar/nix-templates, flake-basic, revision
+1e188267d7ac05b07452fa7b18a86764ab78df58. The .agents lifecycle scripts come from
+the sandbox template, revision dcad0d3554d4bd124f3bdc267c5efa119726d250.
 
 BTMicFix, by Endda / Doug Lynch, inspired the routing investigation.
 Reference: https://github.com/Endda/BTMicFix
