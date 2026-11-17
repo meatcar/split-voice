@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
       - name: Choose version
         shell: bash
         run: |
@@ -71,6 +71,18 @@ jobs:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 }}
         run: nix develop -c .github/sign-release
+      - name: Write release notes
+        if: steps.existing.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          nix develop -c git cliff --unreleased --tag "$RELEASE_TAG" --strip all --output notes.md
+          [[ -s notes.md ]] || echo 'Maintenance release with no user-facing changes.' > notes.md
+          previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+          if [[ -n "$previous" ]]; then
+            printf '\n**Full changelog**: https://github.com/%s/compare/%s...%s\n' \
+              "$GITHUB_REPOSITORY" "$previous" "$RELEASE_TAG" >> notes.md
+          fi
       - name: Publish release
         if: steps.existing.outputs.skip != 'true'
         env:
@@ -81,4 +93,4 @@ jobs:
           set -euo pipefail
           gh release create "$RELEASE_TAG" \
             "dist/split-voice-$RELEASE_TAG.apk" dist/SHA256SUMS \
-            --target "$GITHUB_SHA" --title "Split Voice $RELEASE_TAG" --generate-notes
+            --target "$GITHUB_SHA" --title "Split Voice $RELEASE_TAG" --notes-file notes.md
