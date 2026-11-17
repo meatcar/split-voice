@@ -56,7 +56,7 @@ public final class SplitTileService extends TileService {
     private void toggle() {
         if (routes.busy()) return;
         if (!routes.connected()) {
-            Toast.makeText(this, "Long-press Split Voice for Shizuku setup and recovery.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.tile_setup), Toast.LENGTH_LONG).show();
             return;
         }
         awaitingFeedback = true;
