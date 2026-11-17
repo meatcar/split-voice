@@ -1,9 +1,9 @@
 <resources>
-    <style name="AppTheme" parent="android:style/Theme.Material.Light">
+    <style name="AppTheme" parent="android:style/Theme.DeviceDefault.DayNight">
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
     </style>
-    <style name="Action" parent="android:style/Widget.Material.Light.Button">
+    <style name="Action" parent="android:style/Widget.DeviceDefault.Button">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:minHeight">48dp</item>

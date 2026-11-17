@@ -20,6 +20,10 @@ Binder replies. UI tests render the layouts with Robolectric.
 The test-only tile shadow fixes a missing `ShadowService` inheritance in
 Robolectric 4.14.1 so service destruction can be exercised.
 
+User-facing text lives in `strings.xml`, so translations can be added. Messages built
+inside `RouteService` and `RouteTrial` run in Shizuku's shell process, which has no
+app resources. They stay English until they carry message codes.
+
 Preserve these constraints:
 
 - Save the recovery record before sending any apply request.
