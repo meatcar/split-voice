@@ -79,6 +79,11 @@ signature against the configured certificate, and publishes it with `SHA256SUMS`
 Run it manually from the Actions tab to retry; it skips versions already released.
 Published APKs are not replaced.
 
+The release fails when any commit since the previous release is not verified by
+GitHub. Sign commits and merge pull requests with a merge commit, or push the
+signed branch to `main` as a fast-forward. "Rebase and merge" rewrites commits
+and drops their signatures.
+
 Release notes come from conventional commit messages (`feat`, `fix`, `perf`,
 `refactor`, `chore(deps)`) through `cliff.toml`. Other types stay out of the notes,
 so write those subjects for users. A release with none says so. The GitHub

@@ -50,6 +50,23 @@ jobs:
             echo "$RELEASE_TAG already exists"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Require signed commits
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
+          failed=0
+          while read -r sha subject; do
+            verified=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.verification.verified)
+            [[ "$verified" == true ]] && continue
+            echo "::error::$sha is not signed or verified: $subject"
+            failed=1
+          done < <(git log --format='%H %s' ${previous:+"$previous..HEAD"})
+          exit "$failed"
       - name: Test, lint and assemble
         if: steps.existing.outputs.skip != 'true'
         run: >
