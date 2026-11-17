@@ -206,6 +206,10 @@ final class RouteController {
     }
 
     boolean shizukuRunning() { return Shizuku.pingBinder(); }
+    boolean permissionGranted() {
+        try { return Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED; }
+        catch (RuntimeException e) { return false; }
+    }
     boolean pending() { return journal.getBoolean("pending", false); }
     boolean busy() { return busy || binding; }
     boolean connected() { return service != null; }

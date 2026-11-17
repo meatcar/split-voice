@@ -55,4 +55,10 @@
     <string name="automatic_channel">Automatic split</string>
     <string name="automatic_title">Automatic split is on</string>
     <string name="automatic_body">Splits when a voice session starts. Restores when it ends.</string>
+    <string name="developer_settings">Open wireless debugging settings</string>
+    <string name="step_installed">Shizuku installed</string>
+    <string name="step_running">Shizuku running</string>
+    <string name="step_permission">Shizuku permission granted</string>
+    <string name="step_done">Done: %1$s</string>
+    <string name="step_todo">To do: %1$s</string>
 </resources>

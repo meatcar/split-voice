@@ -35,6 +35,7 @@ import static org.robolectric.Shadows.shadowOf;
 @Config(sdk = {31, 35}, qualifiers = "w360dp-h640dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class MainActivityTest {
+    @Config(qualifiers = "w360dp-h720dp-mdpi")
     @Test public void disconnectedLaunchOffersSetupWithoutRoutingWrites() throws Exception {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
@@ -43,6 +44,11 @@ public class MainActivityTest {
             assertEquals(View.GONE, activity.findViewById(R.id.check).getVisibility());
             assertEquals(View.GONE, activity.findViewById(R.id.restore).getVisibility());
             assertEquals("Shizuku unavailable", ((TextView) activity.findViewById(R.id.status_title)).getText());
+            assertEquals("To do: Shizuku installed\nTo do: Shizuku running\nTo do: Shizuku permission granted",
+                    ((TextView) activity.findViewById(R.id.setup_steps)).getText().toString());
+            activity.findViewById(R.id.developer_settings).performClick();
+            assertEquals(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,
+                    shadowOf(activity).getNextStartedActivity().getAction());
             capture(activity.getWindow().getDecorView(), "setup");
             ScrollView scroll = activity.findViewById(R.id.scroll);
             assertFalse(scroll.canScrollVertically(1));
@@ -95,6 +101,8 @@ public class MainActivityTest {
                 assertEquals(active ? "Split selected" : "Ready to split",
                         ((TextView) activity.findViewById(R.id.status_title)).getText());
                 assertEquals(View.GONE, activity.findViewById(R.id.connect).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.setup_steps).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.developer_settings).getVisibility());
                 assertTrue(activity.findViewById(R.id.check).isEnabled());
                 assertEquals(active ? View.VISIBLE : View.GONE, activity.findViewById(R.id.restore).getVisibility());
                 capture(activity.getWindow().getDecorView(), active ? "active" : "ready");
@@ -198,10 +206,11 @@ public class MainActivityTest {
     }
 
     private static void capture(View root, String name) throws Exception {
+        int height = RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().heightPixels;
         root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY));
-        root.layout(0, 0, 360, 640);
-        Bitmap bitmap = Bitmap.createBitmap(360, 640, Bitmap.Config.ARGB_8888);
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 360, height);
+        Bitmap bitmap = Bitmap.createBitmap(360, height, Bitmap.Config.ARGB_8888);
         root.draw(new Canvas(bitmap));
         File directory = new File("build/reports/ui");
         assertTrue(directory.isDirectory() || directory.mkdirs());
