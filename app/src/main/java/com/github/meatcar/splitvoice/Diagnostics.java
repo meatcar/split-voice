@@ -12,7 +12,7 @@ import java.util.StringJoiner;
 
 import rikka.shizuku.Shizuku;
 
-/** Builds a bug-report summary. Never includes device addresses, names or other identifiers. */
+// NOTE: bug-report summary; must never include device addresses, names or identifiers
 final class Diagnostics {
     private static final Map<Integer, String> TYPES = Map.ofEntries(
             Map.entry(AudioDeviceInfo.TYPE_BUILTIN_EARPIECE, "built-in earpiece"),

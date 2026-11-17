@@ -38,6 +38,11 @@ public final class MainActivity extends Activity {
         });
         findViewById(R.id.check).setOnClickListener(view -> routes.refresh());
         findViewById(R.id.restore).setOnClickListener(view -> routes.restore());
+        CompoundButton automatic = findViewById(R.id.auto_route);
+        automatic.setOnClickListener(view -> {
+            AutoRoute.setEnabled(this, automatic.isChecked());
+            AutoRouteService.sync(this);
+        });
         findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
         findViewById(R.id.diagnostics).setOnClickListener(view -> {
             getSystemService(ClipboardManager.class).setPrimaryClip(
@@ -58,6 +63,7 @@ public final class MainActivity extends Activity {
         super.onStart();
         routes.observe(listener);
         routes.refresh();
+        AutoRouteService.sync(this);
     }
 
     @Override protected void onStop() {
@@ -84,6 +90,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.restore).setVisibility(routes.pending() ? View.VISIBLE : View.GONE);
         findViewById(R.id.restore).setEnabled(!routes.busy() && routes.connected() && routes.pending());
         ((CompoundButton) findViewById(R.id.notifications)).setChecked(RecoveryNotification.enabled(this));
+        ((CompoundButton) findViewById(R.id.auto_route)).setChecked(AutoRoute.enabled(this));
     }
 
     private void openShizuku() {

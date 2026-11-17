@@ -169,6 +169,21 @@ public class MainActivityTest {
         assertNotNull(((AdaptiveIconDrawable) icon).getMonochrome());
     }
 
+    @Test public void automaticSplitSwitchPersistsAndControlsTheService() {
+        var app = shadowOf(RuntimeEnvironment.getApplication());
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            while (app.getNextStartedService() != null || app.getNextStoppedService() != null) { /* drain launch sync */ }
+            CompoundButton automatic = controller.get().findViewById(R.id.auto_route);
+            assertFalse(automatic.isChecked());
+            automatic.performClick();
+            assertTrue(AutoRoute.enabled(controller.get()));
+            assertEquals(AutoRouteService.class.getName(), app.getNextStartedService().getComponent().getClassName());
+            automatic.performClick();
+            assertFalse(AutoRoute.enabled(controller.get()));
+            assertEquals(AutoRouteService.class.getName(), app.getNextStoppedService().getComponent().getClassName());
+        }
+    }
+
     private static void assertReadableTheme(boolean dark) throws Exception {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
