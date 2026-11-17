@@ -1,0 +1,10 @@
+Use a wireless microphone's receiver for voice input while you listen through Bluetooth LE headphones. Toggle it from an Android Quick Settings tile. It needs Shizuku, started with wireless debugging. It does not need root.
+
+How it works: Split Voice asks Android to prefer the receiver for microphone input and the LE headphones for output. It saves a recovery record first and restores normal routing when you tap the tile again.
+
+- No audio recording and no microphone permission
+- No internet permission, analytics or accounts
+- A recovery screen and optional notification if a restore is pending
+- Android 12 or later, a USB receiver and LE Audio headphones
+
+Split Voice changes Android's audio routing. Restore before you uninstall it.
