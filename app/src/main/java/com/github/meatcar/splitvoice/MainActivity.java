@@ -91,7 +91,7 @@ public final class MainActivity extends Activity {
         if (intent == null) intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/guide/setup/"));
         try { startActivity(intent); }
         catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "Install Shizuku from shizuku.rikka.app", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.install_shizuku, Toast.LENGTH_LONG).show();
         }
     }
 
