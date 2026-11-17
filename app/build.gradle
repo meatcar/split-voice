@@ -10,8 +10,8 @@ android {
         applicationId 'com.github.meatcar.splitvoice'
         minSdk 31
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0'
+        versionCode((findProperty('versionCode') ?: '1') as int)
+        versionName findProperty('versionName') ?: '0.1.0'
     }
     buildFeatures { aidl true }
     testOptions { unitTests.includeAndroidResources = true }

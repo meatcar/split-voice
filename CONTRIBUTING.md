@@ -61,11 +61,14 @@ Configure these GitHub Actions settings once:
 Keep an encrypted backup of the keystore and password outside GitHub. Future
 updates need the same key. Git commit signing and APK signing use separate keys.
 
-To release, increase `versionCode` and set `versionName` in `app/build.gradle`.
-After checks pass on `main`, tag that commit `v<versionName>` and push the tag.
-The release workflow runs tests and lint, builds the release APK, checks its
+Every push to `main` that changes more than docs publishes a release. The
+workflow derives the version from the commit count: `versionCode` is the count and
+`versionName` is `VERSION_BASE.<count>`, with the tag `v<versionName>`. Edit
+`VERSION_BASE` in `.github/workflows/release.yml` to start a new minor or major
+line. The workflow runs tests and lint, builds the release APK, checks its
 signature against the configured certificate, and publishes it with `SHA256SUMS`.
-Use a new version for each release; published APKs are not replaced.
+Run it manually from the Actions tab to retry; it skips versions already released.
+Published APKs are not replaced.
 
 Development builds and release APKs have different signing keys. Restore any
 active routing, then uninstall the development build before installing a release.
@@ -73,7 +76,9 @@ active routing, then uninstall the development build before installing a release
 ## Agent environments
 
 `.agents/setup` is for disposable Amp orbs only. Do not run it on an existing
-workstation. Use `nix develop` locally. Keep setup, resume and check executable.
+workstation. Use `nix develop` locally. Keep setup, resume and check executable. The lifecycle in
+`.agents/sandbox/` is vendored from `meatcar/nix-templates#sandbox`; put project behavior in
+`.agents/Taskfile.yml`.
 
 Contributions are under the project's Apache-2.0 license. Credit upstream work
 and retain any license notices when bringing in code.
