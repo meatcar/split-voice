@@ -27,7 +27,9 @@ Shizuku needs to be started again after a phone reboot. The optional recovery no
 
 Long-press the tile to open the app. If it shows **Recovery required**, stop the voice session, reconnect Shizuku, and tap **Restore**. Restore before uninstalling or clearing app data.
 
-Split Voice changes Android's audio routing. It does not record audio or require microphone permission.
+Split Voice changes Android's audio routing. It does not record audio or require microphone or internet permission. See [PRIVACY.md](PRIVACY.md).
+
+Something not working? See [Troubleshooting](docs/troubleshooting.md). Tap **Copy diagnostics** in the app before you open a [bug report](https://github.com/meatcar/split-voice/issues/new/choose).
 
 ## Build
 

@@ -1,0 +1,32 @@
+name: Bug report
+description: Split Voice does not route audio as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Tap Copy diagnostics in Split Voice and paste the result. Remove anything you do not want to share.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Receiver and headphone models
+    validations:
+      required: true
+  - type: dropdown
+    id: voice
+    attributes:
+      label: Was Voice active when it happened?
+      options: [Yes, No, Not sure]
+    validations:
+      required: true
+  - type: textarea
+    id: observations
+    attributes:
+      label: What happened
+      description: Describe microphone input and headphone playback separately. Say whether Restore worked.
+    validations:
+      required: true
