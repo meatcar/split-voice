@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>meatcar/renovate-config",
+    "local>meatcar/split-voice//.agents/sandbox/renovate.jsonc",
+  ],
+  "labels": ["renovate"],
+  "packageRules": [
+    {
+      // NOTE: AGP 9 needs Gradle 9; nixpkgs ships Gradle 8.14.
+      "matchPackageNames": ["com.android.application", "com.android.tools.build:gradle"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false,
+    },
+    {
+      // NOTE: compileOnly version must match what Shizuku resolves at runtime.
+      "matchPackageNames": ["androidx.annotation:annotation"],
+      "enabled": false,
+    },
+  ],
+}
