@@ -1,5 +1,6 @@
 package com.github.meatcar.splitvoice;
 
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -93,6 +94,31 @@ public class MainActivityTest {
                 capture(activity.getWindow().getDecorView(), active ? "active" : "ready");
                 assertFalse(activity.findViewById(R.id.scroll).canScrollVertically(1));
             }
+        }
+    }
+
+    @Test public void diagnosticsDescribeTheSetupWithoutDeviceIdentifiers() throws Exception {
+        RouteController routes = ((SplitVoiceApplication) RuntimeEnvironment.getApplication()).routes();
+        Bundle inspection = new Bundle();
+        inspection.putInt("mode", 3);
+        inspection.putBoolean("empty", true);
+        inspection.putBoolean("devicesReady", true);
+        inspection.putString("receiver", "AA:BB:CC:DD:EE:FF");
+        inspection.putString("earbuds", "11:22:33:44:55:66");
+        inspection.putIntArray("inputTypes", new int[]{3, 11, 15});
+        inspection.putIntArray("outputTypes", new int[]{2, 26, 99});
+        ReflectionHelpers.setField(routes, "inspection", inspection);
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            controller.get().findViewById(R.id.diagnostics).performClick();
+            ClipboardManager clipboard = RuntimeEnvironment.getApplication().getSystemService(ClipboardManager.class);
+            String report = clipboard.getPrimaryClip().getItemAt(0).getText().toString();
+            assertTrue(report, report.contains("Android: "));
+            assertTrue(report, report.contains("Shizuku: not running"));
+            assertTrue(report, report.contains("Input types: wired headset, USB device, built-in mic"));
+            assertTrue(report, report.contains("Output types: built-in speaker, LE headset, type 99"));
+            assertTrue(report, report.contains("Audio mode: 3"));
+            assertFalse(report, report.contains("AA:BB"));
+            assertFalse(report, report.contains("11:22"));
         }
     }
 
