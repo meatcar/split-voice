@@ -205,6 +205,7 @@ final class RouteController {
     boolean busy() { return busy || binding; }
     boolean connected() { return service != null; }
     String message() { return message; }
+    Bundle inspection() { return inspection; }
     void observe(Runnable listener) { listeners.add(listener); listener.run(); }
     void removeObserver(Runnable listener) { listeners.remove(listener); }
     private void show(String value) { message = value; notifyListeners(); }

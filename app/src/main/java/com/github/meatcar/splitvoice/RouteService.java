@@ -83,10 +83,16 @@ public final class RouteService extends IRouteService.Stub {
         Bundle result = new Bundle();
         List<AudioDeviceInfo> inputs = new ArrayList<>();
         List<AudioDeviceInfo> outputs = new ArrayList<>();
+        List<Integer> inputTypes = new ArrayList<>();
+        List<Integer> outputTypes = new ArrayList<>();
         for (AudioDeviceInfo device : devices()) {
+            if (device.isSource()) inputTypes.add(device.getType());
+            if (device.isSink()) outputTypes.add(device.getType());
             if (device.isSource() && device.getType() == AudioDeviceInfo.TYPE_USB_DEVICE) inputs.add(device);
             if (device.isSink() && device.getType() == AudioDeviceInfo.TYPE_BLE_HEADSET) outputs.add(device);
         }
+        result.putIntArray("inputTypes", inputTypes.stream().mapToInt(Integer::intValue).sorted().toArray());
+        result.putIntArray("outputTypes", outputTypes.stream().mapToInt(Integer::intValue).sorted().toArray());
         result.putInt("mode", backend.mode());
         result.putBoolean("sco", backend.sco());
         result.putBoolean("empty", backend.input().isEmpty() && backend.output().isEmpty());
