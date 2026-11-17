@@ -45,7 +45,7 @@ The APK is at `app/build/outputs/apk/debug/app-debug.apk`. See [CONTRIBUTING.md]
 
 ## Disclaimer
 
-Split Voice uses Android's hidden audio APIs and changes system-wide routing; compatibility varies by device and Android version.
+Split Voice uses Android's hidden audio APIs and changes system-wide routing; compatibility varies by device and Android version. See [Compatibility](docs/compatibility.md) and report what works for you.
 
 ## Credits and license
 
