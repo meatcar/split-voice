@@ -27,16 +27,16 @@ public class RouteControllerTest {
 
     @Test public void tileToggleWritesJournalBeforeApplyAndReadsBackBeforeActive() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertTrue(remote.applied);
         assertTrue(routes.pending());
         assertEquals(RouteController.State.ACTIVE, routes.state());
         remote.mode = 0;
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertFalse(routes.pending());
         assertFalse(remote.applied);
         assertEquals(RouteController.State.READY, routes.state());
@@ -44,13 +44,13 @@ public class RouteControllerTest {
 
     @Test public void deadServiceKeepsJournalAndAllowsReconnect() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         remote.dead = true;
         routes.restore();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertTrue(routes.pending());
         assertFalse(routes.connected());
         assertEquals(RouteController.State.RECOVERY, routes.state());
@@ -58,11 +58,11 @@ public class RouteControllerTest {
 
     @Test public void failedApplyRetainsRecoveryAcrossControllerRestart() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         remote.failApply = true;
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertTrue(routes.pending());
         assertEquals(RouteController.State.RECOVERY, routes.state());
         RouteController restarted = new RouteController(context);
@@ -71,31 +71,31 @@ public class RouteControllerTest {
         ReflectionHelpers.setField(restarted, "service", remote);
         remote.mode = 0;
         restarted.restore();
-        awaitIdle(restarted);
+        FakeRouteService.awaitIdle(restarted);
         assertFalse(restarted.pending());
     }
 
     @Test public void restoreDuringVoiceRefusesAndDeviceLossInvalidatesSelectedState() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         routes.restore();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertTrue(routes.pending());
         assertTrue(remote.applied);
         assertEquals("Stop Voice before restoring.", routes.message());
         remote.devicesReady = false;
         routes.refresh();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertEquals(RouteController.State.RECOVERY, routes.state());
         assertTrue(routes.pending());
     }
 
     @Test public void repeatedTapsAndRefreshCannotOverlapAnApply() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         remote.holdApply = new CountDownLatch(1);
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
@@ -108,7 +108,7 @@ public class RouteControllerTest {
         } finally {
             remote.holdApply.countDown();
         }
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertEquals(1, remote.applyCalls);
         assertEquals(0, remote.restoreCalls);
         assertEquals(RouteController.State.ACTIVE, routes.state());
@@ -116,71 +116,14 @@ public class RouteControllerTest {
 
     @Test public void noJournalIsWrittenWhenVoiceIsStopped() throws Exception {
         RouteController routes = new RouteController(context);
-        FakeService remote = new FakeService();
+        FakeRouteService remote = new FakeRouteService(journal);
         remote.mode = 0;
         ReflectionHelpers.setField(routes, "service", remote);
         routes.toggle();
-        awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes);
         assertFalse(routes.pending());
         assertEquals(0, remote.applyCalls);
         assertEquals("Start Voice before applying.", routes.message());
     }
 
-    private final class FakeService extends IRouteService.Stub {
-        boolean applied;
-        boolean dead;
-        boolean failApply;
-        boolean devicesReady = true;
-        int applyCalls;
-        int restoreCalls;
-        CountDownLatch holdApply;
-        final CountDownLatch enteredApply = new CountDownLatch(1);
-        int mode = 3;
-        @Override public void destroy() { fail("Unexpected service destruction"); }
-        @Override public Bundle inspect(String receiver, String earbuds) {
-            Bundle result = new Bundle();
-            result.putBoolean("ok", true);
-            result.putBoolean("devicesReady", devicesReady);
-            result.putBoolean("empty", !applied);
-            result.putBoolean("matches", devicesReady && applied && "receiver".equals(receiver) && "earbuds".equals(earbuds));
-            result.putString("receiver", "receiver");
-            result.putString("earbuds", "earbuds");
-            result.putInt("mode", mode);
-            return result;
-        }
-        @Override public Bundle apply(String receiver, String earbuds) {
-            assertTrue(journal.getBoolean("pending", false));
-            assertEquals("receiver", journal.getString("receiver", null));
-            assertEquals("earbuds", journal.getString("earbuds", null));
-            applyCalls++;
-            enteredApply.countDown();
-            if (holdApply != null) {
-                try { assertTrue(holdApply.await(2, TimeUnit.SECONDS)); }
-                catch (InterruptedException e) { throw new AssertionError(e); }
-            }
-            applied = true;
-            Bundle result = new Bundle();
-            result.putBoolean("ok", !failApply);
-            if (failApply) result.putString("message", "Partial apply failure");
-            return result;
-        }
-        @Override public Bundle restore(String receiver, String earbuds) throws RemoteException {
-            restoreCalls++;
-            if (dead) throw new RemoteException("Service died");
-            Bundle result = new Bundle();
-            result.putBoolean("ok", mode == 0);
-            if (mode == 0) applied = false;
-            else result.putString("message", "Stop Voice before restoring.");
-            return result;
-        }
-    }
-
-    private static void awaitIdle(RouteController routes) throws Exception {
-        for (int i = 0; i < 400; i++) {
-            shadowOf(Looper.getMainLooper()).idle();
-            if (!routes.busy()) return;
-            Thread.sleep(5);
-        }
-        fail("Routing worker did not finish");
-    }
 }

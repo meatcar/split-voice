@@ -211,6 +211,8 @@ final class RouteController {
     boolean connected() { return service != null; }
     String message() { return message; }
     Bundle inspection() { return inspection; }
+    /** The audio mode from the last inspection, or -1 when unknown. */
+    int mode() { return inspection == null ? -1 : inspection.getInt("mode", -1); }
     void observe(Runnable listener) { listeners.add(listener); listener.run(); }
     void removeObserver(Runnable listener) { listeners.remove(listener); }
     private void show(String value) { message = value; notifyListeners(); }
