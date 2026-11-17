@@ -21,6 +21,7 @@ import rikka.shizuku.Shizuku;
 final class RouteController {
     enum State { UNAVAILABLE, WORKING, READY, ACTIVE, RECOVERY, BLOCKED }
 
+    private final Context context;
     private final SharedPreferences journal;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -30,19 +31,21 @@ final class RouteController {
     private boolean binding;
     private final Runnable connectionTimeout = this::connectionTimedOut;
     private Bundle inspection;
-    private String message = "Start Shizuku, then connect.";
+    private String message;
     private final Shizuku.UserServiceArgs arguments = new Shizuku.UserServiceArgs(
             new ComponentName("com.github.meatcar.splitvoice", RouteService.class.getName()))
             .daemon(false).processNameSuffix("routes").debuggable(false).version(1);
 
     RouteController(Context context) {
+        this.context = context.getApplicationContext();
+        message = string(R.string.start_shizuku);
         journal = context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
         Shizuku.addBinderReceivedListenerSticky(() -> main.post(this::refresh));
         Shizuku.addBinderDeadListener(() -> main.post(this::disconnected));
         Shizuku.addRequestPermissionResultListener((request, result) -> {
             if (request == 1) main.post(() -> {
                 if (result == PackageManager.PERMISSION_GRANTED) connect(false);
-                else show("Shizuku permission denied.");
+                else show(string(R.string.permission_denied));
             });
         });
     }
@@ -64,33 +67,33 @@ final class RouteController {
         service = null;
         binding = false;
         inspection = null;
-        show(pending() ? "Start Shizuku to restore." : "Start Shizuku, then connect.");
+        show(pending() ? string(R.string.start_shizuku_restore) : string(R.string.start_shizuku));
     }
 
     void connect(boolean allowPermissionPrompt) {
         if (busy || binding || service != null) return;
         try {
             if (!Shizuku.pingBinder()) {
-                show(pending() ? "Start Shizuku to restore." : "Start Shizuku, then connect.");
+                show(pending() ? string(R.string.start_shizuku_restore) : string(R.string.start_shizuku));
                 return;
             }
             if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
                 if (allowPermissionPrompt) Shizuku.requestPermission(1);
-                else show("Tap Connect to allow Shizuku access.");
+                else show(string(R.string.allow_shizuku));
                 return;
             }
             if (Shizuku.getUid() != 2000) {
-                show("Start Shizuku using wireless debugging, not root.");
+                show(string(R.string.not_root));
                 return;
             }
             binding = true;
             Shizuku.bindUserService(arguments, connection);
-            show("Connecting to Shizuku...");
+            show(string(R.string.connecting));
             main.postDelayed(connectionTimeout, 15000);
         } catch (Exception e) {
             main.removeCallbacks(connectionTimeout);
             binding = false;
-            show("Cannot connect: " + e.getClass().getSimpleName());
+            show(string(R.string.cannot_connect, e.getClass().getSimpleName()));
         }
     }
 
@@ -99,7 +102,7 @@ final class RouteController {
         try { Shizuku.unbindUserService(arguments, connection, false); }
         catch (Exception ignored) { /* NOTE: A stopped binder cannot be unbound. */ }
         disconnected();
-        show("Connection timed out. Restart Shizuku.");
+        show(string(R.string.timed_out));
     }
 
     void refresh() {
@@ -114,7 +117,7 @@ final class RouteController {
         if (busy || binding || service == null) return;
         IRouteService remote = service;
         busy = true;
-        if (change) show(restoring ? "Restoring..." : "Applying split...");
+        if (change) show(restoring ? string(R.string.restoring) : string(R.string.applying));
         else notifyListeners();
         worker.execute(() -> {
             Bundle checked = null;
@@ -126,20 +129,20 @@ final class RouteController {
                     if (restoring) {
                         result = remote.restore(journal.getString("receiver", null), journal.getString("earbuds", null));
                         requireSuccess(result);
-                        RouteTrial.require(journal.edit().clear().commit(), "Routes restored; recovery record could not be cleared.");
+                        RouteTrial.require(journal.edit().clear().commit(), string(R.string.record_not_cleared));
                     } else {
                         Bundle selection = remote.inspect(null, null);
                         requireSuccess(selection);
-                        RouteTrial.require(selection.getBoolean("empty"), "Existing preferences found. Nothing changed.");
-                        RouteTrial.require(selection.getBoolean("devicesReady"), "Connect exactly one receiver input and one LE headset output.");
-                        RouteTrial.require(selection.getInt("mode") == 3, "Start Voice before applying.");
-                        RouteTrial.require(!selection.getBoolean("sco"), "SCO is active. Use the physical receiver for input.");
+                        RouteTrial.require(selection.getBoolean("empty"), string(R.string.existing_preferences));
+                        RouteTrial.require(selection.getBoolean("devicesReady"), string(R.string.connect_exactly_one));
+                        RouteTrial.require(selection.getInt("mode") == 3, string(R.string.start_voice));
+                        RouteTrial.require(!selection.getBoolean("sco"), string(R.string.sco_active));
                         String receiver = selection.getString("receiver");
                         String earbuds = selection.getString("earbuds");
-                        RouteTrial.require(receiver != null && earbuds != null, "Device identities unavailable. Nothing changed.");
+                        RouteTrial.require(receiver != null && earbuds != null, string(R.string.identities_unavailable));
                         RouteTrial.require(journal.edit().putBoolean("pending", true)
                                 .putString("receiver", receiver).putString("earbuds", earbuds).commit(),
-                                "Cannot save recovery state. Nothing applied.");
+                                string(R.string.cannot_save_recovery));
                         result = remote.apply(receiver, earbuds);
                         requireSuccess(result);
                     }
@@ -151,7 +154,7 @@ final class RouteController {
                 checked = null;
                 transportLost = e instanceof RemoteException;
                 outcome = e instanceof IllegalStateException ? e.getMessage()
-                        : "Connection failed. Reconnect Shizuku.";
+                        : string(R.string.connection_failed);
             }
             Bundle completed = checked;
             String feedback = outcome;
@@ -160,15 +163,17 @@ final class RouteController {
                 busy = false;
                 if (disconnected && remote == service) disconnected();
                 inspection = remote == service ? completed : null;
-                if (remote != service) show(pending() ? "Reconnect Shizuku to restore." : "Reconnect Shizuku.");
+                if (remote != service) show(pending() ? string(R.string.reconnect_restore) : string(R.string.reconnect));
                 else show(feedback == null ? guidance() : feedback);
             });
         });
     }
 
-    private static void requireSuccess(Bundle result) {
+    private String string(int id, Object... args) { return context.getString(id, args); }
+
+    private void requireSuccess(Bundle result) {
         RouteTrial.require(result != null && result.getBoolean("ok"),
-                result == null ? "No service result. State unknown." : result.getString("message", "Route check failed."));
+                result == null ? string(R.string.no_result) : result.getString("message", string(R.string.check_failed)));
     }
 
     State state() {
@@ -182,22 +187,22 @@ final class RouteController {
 
     String title() {
         return switch (state()) {
-            case UNAVAILABLE -> "Shizuku unavailable";
-            case WORKING -> "Checking routes";
-            case READY -> "Ready to split";
-            case ACTIVE -> "Split selected";
-            case RECOVERY -> "Recovery required";
-            case BLOCKED -> "Split unavailable";
+            case UNAVAILABLE -> string(R.string.title_unavailable);
+            case WORKING -> string(R.string.title_working);
+            case READY -> string(R.string.title_ready);
+            case ACTIVE -> string(R.string.title_active);
+            case RECOVERY -> string(R.string.title_recovery);
+            case BLOCKED -> string(R.string.title_blocked);
         };
     }
 
     private String guidance() {
-        if (pending()) return "Stop Voice to restore.";
-        if (inspection == null) return "Reconnect Shizuku.";
-        if (!inspection.getBoolean("empty")) return "Another app has routing preferences set.";
-        if (!inspection.getBoolean("devicesReady")) return "Connect one receiver and one LE headset.";
-        if (inspection.getBoolean("sco")) return "Bluetooth mic active. Connect the physical receiver.";
-        return "Start Voice, then tap the Quick Settings tile.";
+        if (pending()) return string(R.string.stop_voice);
+        if (inspection == null) return string(R.string.reconnect);
+        if (!inspection.getBoolean("empty")) return string(R.string.other_app_preferences);
+        if (!inspection.getBoolean("devicesReady")) return string(R.string.connect_one);
+        if (inspection.getBoolean("sco")) return string(R.string.bluetooth_mic);
+        return string(R.string.start_voice_tap_tile);
     }
 
     boolean shizukuRunning() { return Shizuku.pingBinder(); }
