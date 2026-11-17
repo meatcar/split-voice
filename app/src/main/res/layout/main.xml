@@ -18,6 +18,13 @@
             android:layout_height="wrap_content" android:minHeight="56dp"
             android:layout_marginTop="16dp" android:text="@string/notifications"
             android:textAppearance="?android:attr/textAppearanceMedium" />
+        <Switch android:id="@+id/auto_route" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="56dp"
+            android:text="@string/auto_route"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+        <TextView android:id="@+id/auto_route_hint" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/auto_route_hint"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
         <Button android:id="@+id/diagnostics" style="@style/Action"
             android:layout_marginTop="16dp" android:text="@string/diagnostics" />
     </LinearLayout>

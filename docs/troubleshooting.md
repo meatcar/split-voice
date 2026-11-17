@@ -26,6 +26,19 @@ before you report a problem.
 | Input readback failed, or Combined readback failed. | Android did not accept the change. Stop Voice, tap **Restore**, then try again. If it repeats, send diagnostics. |
 | Unsupported or unavailable API | This Android or One UI version may not support the routing calls. Send diagnostics. |
 
+## Automatic split
+
+Turn on **Split automatically** to apply the split when a voice session starts and
+restore it when the session ends. It makes one attempt per session. It never
+retries a failed apply or restore. If one fails, the app shows **Recovery required**
+and you finish with the tile or **Restore**.
+
+- Open Split Voice after you reboot and restart Shizuku. Automatic split cannot
+  connect before then.
+- It shows a notification while it runs. Turning the setting off removes it.
+- It reacts to any app that starts a voice session. Turn it off if you want to
+  choose each time.
+
 ## Recovery
 
 If the title says **Recovery required**, Split Voice changed routing and has not
