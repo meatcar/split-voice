@@ -1,0 +1,6 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <size android:width="52dp" android:height="32dp" />
+    <corners android:radius="16dp" />
+    <solid android:color="@color/switch_track" />
+    <stroke android:width="2dp" android:color="@color/switch_track_outline" />
+</shape>

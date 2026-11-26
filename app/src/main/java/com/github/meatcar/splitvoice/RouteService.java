@@ -14,7 +14,7 @@ public final class RouteService extends IRouteService.Stub {
     private final RouteTrial.Backend backend;
 
     public RouteService() throws Exception {
-        RouteTrial.require(Process.myUid() == SHELL_UID, "Shell UID 2000 required; root is not supported.");
+        RouteTrial.require(Process.myUid() == SHELL_UID, "Shizuku must run with wireless debugging, not root.");
         backend = new AudioServiceBackend();
     }
 
@@ -58,13 +58,13 @@ public final class RouteService extends IRouteService.Stub {
         long identity = Binder.clearCallingIdentity();
         try {
             if (operation.equals("inspect")) return inspectRoutes(receiver, earbuds);
-            RouteTrial.require(receiver != null && earbuds != null, "Missing recovery device identities. Preserve app data.");
+            RouteTrial.require(receiver != null && earbuds != null, "The recovery record is incomplete. Keep app data and send diagnostics.");
             RouteTrial.Device input = RouteTrial.Device.receiver(receiver);
             RouteTrial.Device output = RouteTrial.Device.headphones(earbuds);
             if (operation.equals("apply")) {
                 Bundle current = inspectRoutes(receiver, earbuds);
                 RouteTrial.require(current.getBoolean("devicesReady") && receiver.equals(current.getString("receiver"))
-                        && earbuds.equals(current.getString("earbuds")), "Devices changed. Check again.");
+                        && earbuds.equals(current.getString("earbuds")), "A device connected or disconnected. Nothing changed. Try again.");
                 RouteTrial.apply(backend, input, output);
             } else {
                 RouteTrial.restore(backend, input, output);
@@ -72,14 +72,14 @@ public final class RouteService extends IRouteService.Stub {
             Bundle result = new Bundle();
             result.putBoolean("ok", true);
             result.putString("message", operation.equals("apply")
-                    ? "Split selected."
-                    : "Restored.");
+                    ? "Split is on. End the voice chat, then tap Restore."
+                    : "Normal audio restored.");
             return result;
         } catch (Exception e) {
             Bundle result = new Bundle();
             result.putBoolean("ok", false);
             result.putString("message", e instanceof IllegalStateException ? e.getMessage()
-                    : "Unsupported or unavailable API: " + e.getClass().getSimpleName());
+                    : "This Android version rejected the routing call (" + e.getClass().getSimpleName() + "). Send diagnostics.");
             return result;
         } finally {
             Binder.restoreCallingIdentity(identity);

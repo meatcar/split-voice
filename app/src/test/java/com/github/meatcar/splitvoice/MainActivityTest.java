@@ -2,6 +2,9 @@ package com.github.meatcar.splitvoice;
 
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -20,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowToast;
@@ -32,26 +36,40 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {31, 35}, qualifiers = "w360dp-h640dp-mdpi")
+@Config(sdk = {31, 35}, qualifiers = "w360dp-h720dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class MainActivityTest {
-    @Config(qualifiers = "w360dp-h720dp-mdpi")
-    @Test public void disconnectedLaunchOffersSetupWithoutRoutingWrites() throws Exception {
+    @Test public void firstLaunchWalksThroughSetupOneStepAtATime() throws Exception {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            assertTrue(activity.findViewById(R.id.connect).isEnabled());
-            assertEquals("Open Shizuku", ((TextView) activity.findViewById(R.id.connect)).getText());
-            assertEquals(View.GONE, activity.findViewById(R.id.check).getVisibility());
-            assertEquals(View.GONE, activity.findViewById(R.id.restore).getVisibility());
-            assertEquals("Shizuku unavailable", ((TextView) activity.findViewById(R.id.status_title)).getText());
-            assertEquals("To do: Shizuku installed\nTo do: Shizuku running\nTo do: Shizuku permission granted",
-                    ((TextView) activity.findViewById(R.id.setup_steps)).getText().toString());
-            activity.findViewById(R.id.developer_settings).performClick();
-            assertEquals(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,
-                    shadowOf(activity).getNextStartedActivity().getAction());
-            capture(activity.getWindow().getDecorView(), "setup");
-            ScrollView scroll = activity.findViewById(R.id.scroll);
-            assertFalse(scroll.canScrollVertically(1));
+            assertEquals("Finish setup", text(activity, R.id.status_title));
+            assertEquals("Start Shizuku to continue.", text(activity, R.id.status));
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
+            assertEquals(View.GONE, activity.findViewById(R.id.checks).getVisibility());
+            assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
+            assertEquals(View.VISIBLE, actions(activity, R.id.step_install).getVisibility());
+            assertEquals(View.GONE, actions(activity, R.id.step_start).getVisibility());
+            assertEquals(View.GONE, actions(activity, R.id.step_connect).getVisibility());
+            activity.findViewById(R.id.step_install).findViewById(R.id.step_action).performClick();
+            assertEquals("https://shizuku.rikka.app/download/",
+                    shadowOf(activity).getNextStartedActivity().getDataString());
+            capture(activity, "setup");
+        }
+    }
+
+    @Test public void installedShizukuMovesSetupToStartingIt() throws Exception {
+        var app = RuntimeEnvironment.getApplication();
+        Intent launcher = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                .setPackage("moe.shizuku.privileged.api");
+        shadowOf(app.getPackageManager()).addResolveInfoForIntent(launcher, resolveInfo("moe.shizuku.privileged.api"));
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.step_install).findViewById(R.id.step_done).getVisibility());
+            assertEquals(View.GONE, actions(activity, R.id.step_install).getVisibility());
+            assertEquals(View.VISIBLE, actions(activity, R.id.step_start).getVisibility());
+            activity.findViewById(R.id.step_start).findViewById(R.id.step_action).performClick();
+            assertEquals("moe.shizuku.privileged.api", shadowOf(activity).getNextStartedActivity().getPackage());
+            capture(activity, "setup-installed");
         }
     }
 
@@ -63,51 +81,66 @@ public class MainActivityTest {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             controller.recreate();
             MainActivity activity = controller.get();
-            assertEquals("Recovery required", ((TextView) activity.findViewById(R.id.status_title)).getText());
-            assertEquals("Start Shizuku to restore.", ((TextView) activity.findViewById(R.id.status)).getText());
-            assertEquals(View.VISIBLE, activity.findViewById(R.id.restore).getVisibility());
-            assertFalse(activity.findViewById(R.id.restore).isEnabled());
-            capture(activity.getWindow().getDecorView(), "recovery");
+            assertEquals("Restore needed", text(activity, R.id.status_title));
+            assertEquals("Start Shizuku, then tap Restore.", text(activity, R.id.status));
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
+            assertEquals("Restore", text(activity, R.id.primary));
+            assertFalse(activity.findViewById(R.id.primary).isEnabled());
+            capture(activity, "recovery");
         }
     }
 
-    @Test public void connectedScreenShowsOnlyRelevantControls() throws Exception {
-        var app = (SplitVoiceApplication) RuntimeEnvironment.getApplication();
-        RouteController routes = app.routes();
+    @Test public void connectedScreenShowsWhatIsReadyAndOneAction() throws Exception {
         for (boolean active : new boolean[]{false, true}) {
-            var journal = app.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
+            var journal = RuntimeEnvironment.getApplication().getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
             assertTrue(journal.edit().putBoolean("pending", active).commit());
-            IRouteService service = new IRouteService.Stub() {
-                @Override public Bundle inspect(String receiver, String earbuds) {
-                    Bundle result = new Bundle();
-                    result.putBoolean("ok", true);
-                    result.putBoolean("empty", !active);
-                    result.putBoolean("matches", active);
-                    result.putBoolean("devicesReady", true);
-                    return result;
-                }
-                @Override public Bundle apply(String receiver, String earbuds) { throw new AssertionError("UI launch must not apply"); }
-                @Override public Bundle restore(String receiver, String earbuds) { throw new AssertionError("UI launch must not restore"); }
-                @Override public void destroy() { throw new AssertionError("UI launch must not destroy service"); }
-            };
-            ReflectionHelpers.setField(routes, "service", service);
-            try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
-                for (int i = 0; i < 400 && routes.busy(); i++) {
-                    shadowOf(Looper.getMainLooper()).idle();
-                    Thread.sleep(5);
-                }
-                assertFalse("Route inspection did not finish", routes.busy());
+            Bundle inspection = inspection(new int[]{11, 15}, new int[]{2, 26}, 3);
+            inspection.putBoolean("empty", !active);
+            inspection.putBoolean("matches", active);
+            inspection.putBoolean("devicesReady", true);
+            try (var controller = launchConnected(inspection)) {
                 MainActivity activity = controller.get();
-                assertEquals(active ? "Split selected" : "Ready to split",
-                        ((TextView) activity.findViewById(R.id.status_title)).getText());
-                assertEquals(View.GONE, activity.findViewById(R.id.connect).getVisibility());
-                assertEquals(View.GONE, activity.findViewById(R.id.setup_steps).getVisibility());
-                assertEquals(View.GONE, activity.findViewById(R.id.developer_settings).getVisibility());
-                assertTrue(activity.findViewById(R.id.check).isEnabled());
-                assertEquals(active ? View.VISIBLE : View.GONE, activity.findViewById(R.id.restore).getVisibility());
-                capture(activity.getWindow().getDecorView(), active ? "active" : "ready");
-                assertFalse(activity.findViewById(R.id.scroll).canScrollVertically(1));
+                assertEquals(active ? "Split is on" : "Ready to split", text(activity, R.id.status_title));
+                assertEquals(View.GONE, activity.findViewById(R.id.setup).getVisibility());
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.checks).getVisibility());
+                assertEquals("Connected", check(activity, R.id.check_receiver));
+                assertEquals("Connected", check(activity, R.id.check_headphones));
+                assertEquals("In progress", check(activity, R.id.check_voice_chat));
+                assertEquals(active ? "Restore" : "Split", text(activity, R.id.primary));
+                assertTrue(activity.findViewById(R.id.primary).isEnabled());
+                capture(activity, active ? "active" : "ready");
             }
+        }
+    }
+
+    @Test public void blockedScreenNamesTheMissingAndExtraDevices() throws Exception {
+        Bundle inspection = inspection(new int[]{15}, new int[]{2, 26, 26}, 0);
+        inspection.putBoolean("empty", true);
+        try (var controller = launchConnected(inspection)) {
+            MainActivity activity = controller.get();
+            assertEquals("Not ready", text(activity, R.id.status_title));
+            assertEquals("Connect one mic receiver and one pair of LE Audio headphones.", text(activity, R.id.status));
+            assertEquals("Not connected", check(activity, R.id.check_receiver));
+            assertEquals("2 connected", check(activity, R.id.check_headphones));
+            assertEquals("Not started", check(activity, R.id.check_voice_chat));
+            assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
+            capture(activity, "blocked");
+        }
+    }
+
+    @Test public void splitButtonAppliesThroughTheController() throws Exception {
+        var app = (SplitVoiceApplication) RuntimeEnvironment.getApplication();
+        FakeRouteService remote = new FakeRouteService(app.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE));
+        ReflectionHelpers.setField(app.routes(), "service", remote);
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            FakeRouteService.awaitIdle(app.routes());
+            MainActivity activity = controller.get();
+            assertEquals("Split", text(activity, R.id.primary));
+            activity.findViewById(R.id.primary).performClick();
+            FakeRouteService.awaitIdle(app.routes());
+            assertEquals(1, remote.applyCalls);
+            assertEquals("Split is on", text(activity, R.id.status_title));
+            assertEquals("Restore", text(activity, R.id.primary));
         }
     }
 
@@ -140,7 +173,7 @@ public class MainActivityTest {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
             activity.findViewById(R.id.add_tile).performClick();
-            assertEquals("Edit Quick Settings to add Split Voice.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Open Quick Settings, tap Edit, and drag Split Voice in.", ShadowToast.getTextOfLatestToast());
             CompoundButton notifications = activity.findViewById(R.id.notifications);
             notifications.performClick();
             assertTrue(notifications.isChecked());
@@ -165,7 +198,7 @@ public class MainActivityTest {
         assertReadableTheme(false);
     }
 
-    @Config(qualifiers = "w360dp-h640dp-night-mdpi") @Test public void darkThemeUsesLightTextOnDarkBackground() throws Exception {
+    @Config(qualifiers = "w360dp-h720dp-night-mdpi") @Test public void darkThemeUsesLightTextOnDarkBackground() throws Exception {
         assertReadableTheme(true);
     }
 
@@ -185,6 +218,7 @@ public class MainActivityTest {
             assertFalse(automatic.isChecked());
             automatic.performClick();
             assertTrue(AutoRoute.enabled(controller.get()));
+            assertTrue(automatic.getText().toString().contains("Paused until Split Voice connects to Shizuku."));
             assertEquals(AutoRouteService.class.getName(), app.getNextStartedService().getComponent().getClassName());
             automatic.performClick();
             assertFalse(AutoRoute.enabled(controller.get()));
@@ -201,17 +235,75 @@ public class MainActivityTest {
             double textLuminance = Color.luminance(((TextView) activity.findViewById(R.id.status_title)).getCurrentTextColor());
             assertEquals(dark, backgroundLuminance < 0.2);
             assertEquals(dark, textLuminance > 0.6);
-            capture(activity.getWindow().getDecorView(), dark ? "setup-dark" : "setup-light");
+            capture(activity, dark ? "setup-dark" : "setup-light");
         }
     }
 
-    private static void capture(View root, String name) throws Exception {
-        int height = RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().heightPixels;
-        root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-        root.layout(0, 0, 360, height);
-        Bitmap bitmap = Bitmap.createBitmap(360, height, Bitmap.Config.ARGB_8888);
-        root.draw(new Canvas(bitmap));
+    @Test public void addedTileHidesTheAddButton() {
+        SplitTileService.setAdded(RuntimeEnvironment.getApplication(), true);
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            assertEquals(View.GONE, controller.get().findViewById(R.id.add_tile).getVisibility());
+            assertTrue(text(controller.get(), R.id.tile_text).contains("Added."));
+        }
+    }
+
+    private static ActivityController<MainActivity> launchConnected(Bundle inspection) throws Exception {
+        RouteController routes = ((SplitVoiceApplication) RuntimeEnvironment.getApplication()).routes();
+        inspection.putBoolean("ok", true);
+        ReflectionHelpers.setField(routes, "service", new IRouteService.Stub() {
+            @Override public Bundle inspect(String receiver, String earbuds) { return inspection; }
+            @Override public Bundle apply(String receiver, String earbuds) { throw new AssertionError("launch must not apply"); }
+            @Override public Bundle restore(String receiver, String earbuds) { throw new AssertionError("launch must not restore"); }
+            @Override public void destroy() { throw new AssertionError("launch must not destroy the service"); }
+        });
+        var controller = Robolectric.buildActivity(MainActivity.class).setup();
+        FakeRouteService.awaitIdle(routes);
+        return controller;
+    }
+
+    private static Bundle inspection(int[] inputTypes, int[] outputTypes, int mode) {
+        Bundle inspection = new Bundle();
+        inspection.putIntArray("inputTypes", inputTypes);
+        inspection.putIntArray("outputTypes", outputTypes);
+        inspection.putInt("mode", mode);
+        return inspection;
+    }
+
+    private static ResolveInfo resolveInfo(String packageName) {
+        ResolveInfo info = new ResolveInfo();
+        info.activityInfo = new ActivityInfo();
+        info.activityInfo.packageName = packageName;
+        info.activityInfo.name = packageName + ".MainActivity";
+        return info;
+    }
+
+    private static String text(MainActivity activity, int id) {
+        return ((TextView) activity.findViewById(id)).getText().toString();
+    }
+
+    private static String check(MainActivity activity, int row) {
+        return ((TextView) activity.findViewById(row).findViewById(R.id.check_value)).getText().toString();
+    }
+
+    private static View actions(MainActivity activity, int step) {
+        return activity.findViewById(step).findViewById(R.id.step_action);
+    }
+
+    /** Renders the whole scrolling screen with its 16dp gutter, so CI artifacts show every state. */
+    private static void capture(MainActivity activity, String name) throws Exception {
+        View root = activity.findViewById(R.id.content);
+        int width = 360;
+        int gutter = 16;
+        root.measure(View.MeasureSpec.makeMeasureSpec(width - 2 * gutter, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
+        Bitmap bitmap = Bitmap.createBitmap(width, root.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        var background = new TypedValue();
+        activity.getTheme().resolveAttribute(android.R.attr.colorBackground, background, true);
+        canvas.drawColor(background.data);
+        canvas.translate(gutter, 0);
+        root.draw(canvas);
         File directory = new File("build/reports/ui");
         assertTrue(directory.isDirectory() || directory.mkdirs());
         try (FileOutputStream output = new FileOutputStream(new File(directory, name + ".png"))) {

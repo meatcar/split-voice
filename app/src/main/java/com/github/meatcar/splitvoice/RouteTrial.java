@@ -24,15 +24,15 @@ final class RouteTrial {
     }
 
     static void apply(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == AudioManager.MODE_IN_COMMUNICATION, "Start Voice before applying.");
-        require(!backend.sco(), "SCO is active. Connect the physical receiver instead of Bluetooth mic input.");
+        require(backend.mode() == AudioManager.MODE_IN_COMMUNICATION, "Start a voice chat first. Nothing changed.");
+        require(!backend.sco(), "Your headphones' own mic is in use. Nothing changed.");
         require(backend.input().isEmpty() && backend.output().isEmpty(),
-                "Existing preferences found. Only an empty baseline is supported.");
+                "Another app already chose audio devices. Nothing changed.");
         backend.input(List.of(receiver));
-        require(backend.input().equals(List.of(receiver)), "Input readback failed. Stop Voice and restore.");
+        require(backend.input().equals(List.of(receiver)), "Android did not keep the mic choice. End the voice chat, then tap Restore.");
         backend.output(List.of(earbuds));
         require(matches(backend, receiver, earbuds),
-                "Combined readback failed. Stop Voice and restore.");
+                "Android did not keep the headphone choice. End the voice chat, then tap Restore.");
     }
 
     static boolean matches(Backend backend, Device receiver, Device earbuds) throws Exception {
@@ -40,9 +40,9 @@ final class RouteTrial {
     }
 
     static void restore(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == AudioManager.MODE_NORMAL, "Stop Voice before restoring.");
+        require(backend.mode() == AudioManager.MODE_NORMAL, "End the voice chat first. Nothing changed.");
         require(compatible(backend.input(), receiver) && compatible(backend.output(), earbuds),
-                "Preferences changed outside Split Voice. Refusing to overwrite them.");
+                "Another app changed audio devices after the split. Split Voice will not override it.");
         Exception failure = null;
         try {
             backend.output(List.of());
@@ -56,7 +56,7 @@ final class RouteTrial {
             else failure.addSuppressed(e);
         }
         if (failure != null) throw failure;
-        require(backend.input().isEmpty() && backend.output().isEmpty(), "Restoration readback failed.");
+        require(backend.input().isEmpty() && backend.output().isEmpty(), "Android did not confirm the restore. Tap Restore again.");
     }
 
     private static boolean compatible(List<Device> actual, Device expected) {

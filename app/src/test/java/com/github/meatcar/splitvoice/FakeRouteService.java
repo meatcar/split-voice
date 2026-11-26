@@ -59,7 +59,7 @@ final class FakeRouteService extends IRouteService.Stub {
         Bundle result = new Bundle();
         result.putBoolean("ok", mode == 0 && !failRestore);
         if (mode == 0 && !failRestore) applied = false;
-        else result.putString("message", failRestore ? "Restore failed" : "Stop Voice before restoring.");
+        else result.putString("message", failRestore ? "Restore failed" : "End the voice chat first. Nothing changed.");
         return result;
     }
 

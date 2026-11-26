@@ -1,35 +1,71 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/scroll" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:fillViewport="true">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:padding="16dp">
-        <TextView android:id="@+id/status_title" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceLarge"
-            android:accessibilityLiveRegion="polite" android:accessibilityHeading="true"
-            android:layout_marginTop="8dp" />
-        <TextView android:id="@+id/status" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceMedium"
-            android:layout_marginTop="8dp" android:layout_marginBottom="16dp" />
-        <TextView android:id="@+id/setup_steps" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:textAppearance="?android:attr/textAppearanceMedium"
-            android:lineSpacingMultiplier="1.2" android:layout_marginBottom="16dp" />
-        <Button android:id="@+id/connect" style="@style/Action" android:text="@string/connect" />
-        <Button android:id="@+id/developer_settings" style="@style/Action" android:text="@string/developer_settings" />
-        <Button android:id="@+id/check" style="@style/Action" android:text="@string/check" />
-        <Button android:id="@+id/restore" style="@style/Action" android:text="@string/restore" />
-        <Button android:id="@+id/add_tile" style="@style/Action" android:text="@string/add_tile" />
-        <Switch android:id="@+id/notifications" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:minHeight="56dp"
-            android:layout_marginTop="16dp" android:text="@string/notifications"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-        <Switch android:id="@+id/auto_route" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:minHeight="56dp"
-            android:text="@string/auto_route"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-        <TextView android:id="@+id/auto_route_hint" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:text="@string/auto_route_hint"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
-        <Button android:id="@+id/diagnostics" style="@style/Action"
-            android:layout_marginTop="16dp" android:text="@string/diagnostics" />
+    android:fillViewport="true" android:clipToPadding="false">
+    <LinearLayout android:id="@+id/content" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="24dp">
+
+        <TextView android:id="@+id/app_title" style="@style/Text.Display" android:layout_marginTop="32dp"
+            android:paddingStart="16dp" android:text="@string/app_name" android:accessibilityHeading="true" />
+        <TextView style="@style/Text.Supporting" android:paddingStart="16dp" android:layout_marginTop="4dp"
+            android:text="@string/tagline" />
+
+        <LinearLayout android:id="@+id/status_card" style="@style/Card" android:layout_marginTop="24dp"
+            android:paddingHorizontal="16dp" android:paddingVertical="24dp">
+            <FrameLayout android:layout_width="48dp" android:layout_height="48dp"
+                android:importantForAccessibility="noHideDescendants">
+                <ImageView android:id="@+id/status_icon" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:padding="12dp"
+                    android:background="@drawable/circle" />
+                <ProgressBar android:id="@+id/status_progress" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:padding="8dp" android:indeterminate="true"
+                    android:indeterminateTint="@color/primary" android:visibility="gone" />
+            </FrameLayout>
+            <TextView android:id="@+id/status_title" style="@style/Text.Headline" android:layout_marginTop="16dp"
+                android:accessibilityHeading="true" android:accessibilityLiveRegion="polite" />
+            <TextView android:id="@+id/status" style="@style/Text.Body" android:layout_marginTop="4dp"
+                android:accessibilityLiveRegion="polite" />
+
+            <LinearLayout android:id="@+id/checks" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical">
+                <include android:id="@+id/check_receiver" layout="@layout/check_row" />
+                <include android:id="@+id/check_headphones" layout="@layout/check_row" />
+                <include android:id="@+id/check_voice_chat" layout="@layout/check_row" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/setup" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="vertical">
+                <include android:id="@+id/step_install" layout="@layout/step" />
+                <include android:id="@+id/step_start" layout="@layout/step" />
+                <include android:id="@+id/step_connect" layout="@layout/step" />
+            </LinearLayout>
+
+            <Button android:id="@+id/primary" style="@style/Button.Filled" android:layout_width="match_parent"
+                android:layout_marginTop="20dp" android:minHeight="56dp" android:textSize="16sp" />
+        </LinearLayout>
+
+        <TextView style="@style/Text.Section" android:text="@string/options" />
+        <LinearLayout style="@style/Card">
+            <Switch android:id="@+id/auto_route" style="@style/Row" />
+            <Switch android:id="@+id/notifications" style="@style/Row" />
+            <LinearLayout style="@style/Row" android:orientation="horizontal" android:screenReaderFocusable="true">
+                <TextView android:id="@+id/tile_text" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1" android:textSize="16sp"
+                    android:textColor="@color/on_surface" android:lineSpacingExtra="2sp" />
+                <Button android:id="@+id/add_tile" style="@style/Button.Tonal" android:layout_marginStart="16dp"
+                    android:text="@string/add_tile" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView style="@style/Text.Section" android:text="@string/help" />
+        <LinearLayout style="@style/Card">
+            <TextView android:id="@+id/how_it_works" style="@style/Row.Link"
+                android:drawableStart="@drawable/ic_info" android:drawableEnd="@drawable/ic_open" />
+            <TextView android:id="@+id/troubleshooting" style="@style/Row.Link"
+                android:drawableStart="@drawable/ic_help" android:drawableEnd="@drawable/ic_open" />
+            <TextView android:id="@+id/diagnostics" style="@style/Row.Link"
+                android:drawableStart="@drawable/ic_copy" />
+            <TextView android:id="@+id/report_problem" style="@style/Row.Link"
+                android:drawableStart="@drawable/ic_bug" android:drawableEnd="@drawable/ic_open" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

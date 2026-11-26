@@ -85,7 +85,7 @@ public class RouteControllerTest {
         FakeRouteService.awaitIdle(routes);
         assertTrue(routes.pending());
         assertTrue(remote.applied);
-        assertEquals("Stop Voice before restoring.", routes.message());
+        assertEquals("End the voice chat first. Nothing changed.", routes.message());
         remote.devicesReady = false;
         routes.refresh();
         FakeRouteService.awaitIdle(routes);
@@ -123,7 +123,7 @@ public class RouteControllerTest {
         FakeRouteService.awaitIdle(routes);
         assertFalse(routes.pending());
         assertEquals(0, remote.applyCalls);
-        assertEquals("Start Voice before applying.", routes.message());
+        assertEquals("Start a voice chat first. Nothing changed.", routes.message());
     }
 
 }

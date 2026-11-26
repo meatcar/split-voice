@@ -1,6 +1,8 @@
 package com.github.meatcar.splitvoice;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Looper;
 import android.service.quicksettings.Tile;
@@ -30,9 +32,14 @@ public class SplitTileServiceTest {
         private final Tile tile = Shadow.newInstanceOf(Tile.class);
         boolean locked;
         Runnable unlockAction;
+        PendingIntent collapsedTo;
         @Implementation protected Tile getQsTile() { return tile; }
         @Implementation protected boolean isLocked() { return locked; }
         @Implementation protected void unlockAndRun(Runnable action) { unlockAction = action; }
+        @Implementation protected void startActivityAndCollapse(PendingIntent intent) { collapsedTo = intent; }
+        @Implementation protected void startActivityAndCollapse(Intent intent) {
+            collapsedTo = PendingIntent.getActivity(RuntimeEnvironment.getApplication(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        }
     }
 
     @Test public void lockedTapWaitsForUnlockThenTogglesWithoutOpeningActivity() throws Exception {
@@ -59,7 +66,7 @@ public class SplitTileServiceTest {
             service.get().onClick();
             awaitIdle(routes);
             assertTrue(routes.pending());
-            assertEquals("Stop Voice before restoring.", routes.message());
+            assertEquals("End the voice chat first. Nothing changed.", routes.message());
             remote.mode = 0;
             service.get().onClick();
             awaitIdle(routes);
@@ -71,14 +78,20 @@ public class SplitTileServiceTest {
         }
     }
 
-    @Test public void unavailableTileExplainsSetupWithoutOpeningAnActivity() {
+    @Test public void tapBeforeSetupOpensTheAppAndRemembersTheTile() {
         var service = Robolectric.buildService(SplitTileService.class).create();
+        LifecycleTileShadow platform = Shadow.extract(service.get());
         try {
+            assertFalse(SplitTileService.added(service.get()));
             service.get().onStartListening();
-            assertEquals(Tile.STATE_UNAVAILABLE, service.get().getQsTile().getState());
-            assertEquals("Shizuku unavailable", service.get().getQsTile().getSubtitle());
+            assertTrue(SplitTileService.added(service.get()));
+            assertEquals(Tile.STATE_INACTIVE, service.get().getQsTile().getState());
+            assertEquals("Set up", service.get().getQsTile().getSubtitle());
             service.get().onClick();
-            assertNull(shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity());
+            assertEquals(MainActivity.class.getName(),
+                    shadowOf(platform.collapsedTo).getSavedIntent().getComponent().getClassName());
+            service.get().onTileRemoved();
+            assertFalse(SplitTileService.added(service.get()));
         } finally {
             service.get().onStopListening();
             service.destroy();
@@ -91,8 +104,8 @@ public class SplitTileServiceTest {
         var service = Robolectric.buildService(SplitTileService.class).create();
         try {
             service.get().onStartListening();
-            assertEquals(Tile.STATE_UNAVAILABLE, service.get().getQsTile().getState());
-            assertEquals("Recovery required", service.get().getQsTile().getSubtitle());
+            assertEquals(Tile.STATE_INACTIVE, service.get().getQsTile().getState());
+            assertEquals("Restore needed", service.get().getQsTile().getSubtitle());
             service.get().onTileRemoved();
         } finally {
             service.get().onStopListening();
@@ -128,7 +141,7 @@ public class SplitTileServiceTest {
             Bundle result = new Bundle();
             result.putBoolean("ok", mode == 0);
             if (mode == 0) applied = false;
-            else result.putString("message", "Stop Voice before restoring.");
+            else result.putString("message", "End the voice chat first. Nothing changed.");
             return result;
         }
     }

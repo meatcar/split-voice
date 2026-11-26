@@ -29,7 +29,7 @@ public class RecoveryNotificationTest {
         Notification reminder = manager.getNotification(1);
         assertNotNull(reminder);
         assertNotEquals(0, reminder.flags & Notification.FLAG_ONGOING_EVENT);
-        assertEquals("Stop Voice, then open controls to restore.", reminder.extras.getString(Notification.EXTRA_TEXT));
+        assertEquals("End the voice chat, then open Split Voice and tap Restore.", reminder.extras.getString(Notification.EXTRA_TEXT));
         reminder.contentIntent.send();
         assertEquals(MainActivity.class.getName(), shadowOf(app).getNextStartedActivity().getComponent().getClassName());
         RecoveryNotification.setEnabled(app, false, app.routes());

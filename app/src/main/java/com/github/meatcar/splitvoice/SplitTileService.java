@@ -1,5 +1,10 @@
 package com.github.meatcar.splitvoice;
 
+import android.annotation.SuppressLint;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.Tile;
@@ -20,15 +25,34 @@ public final class SplitTileService extends TileService {
         }
     };
 
+    static boolean added(Context context) {
+        return context.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("tile", false);
+    }
+
+    static void setAdded(Context context, boolean added) {
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit().putBoolean("tile", added).apply();
+    }
+
     @Override public void onCreate() {
         super.onCreate();
         routes = ((SplitVoiceApplication) getApplication()).routes();
+    }
+
+    @Override public void onTileAdded() {
+        super.onTileAdded();
+        setAdded(this, true);
+    }
+
+    @Override public void onTileRemoved() {
+        setAdded(this, false);
+        super.onTileRemoved();
     }
 
     @Override public void onStartListening() {
         super.onStartListening();
         if (listening) return;
         listening = true;
+        setAdded(this, true);
         poll.run();
         routes.observe(listener);
     }
@@ -48,19 +72,31 @@ public final class SplitTileService extends TileService {
 
     @Override public void onClick() {
         super.onClick();
-        if (isLocked()) {
-            unlockAndRun(this::toggle);
-        } else toggle();
+        if (isLocked()) unlockAndRun(this::act);
+        else act();
+    }
+
+    private void act() {
+        switch (routes.state()) {
+            case WORKING -> { }
+            case READY, ACTIVE -> toggle();
+            case RECOVERY -> { if (routes.connected()) toggle(); else openApp(); }
+            case UNAVAILABLE, BLOCKED -> openApp();
+        }
     }
 
     private void toggle() {
-        if (routes.busy()) return;
-        if (!routes.connected()) {
-            Toast.makeText(this, getString(R.string.tile_setup), Toast.LENGTH_LONG).show();
-            return;
-        }
         awaitingFeedback = true;
         routes.toggle();
+    }
+
+    @SuppressLint("StartActivityAndCollapseDeprecated")
+    @SuppressWarnings("deprecation")
+    private void openApp() {
+        Intent intent = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (Build.VERSION.SDK_INT >= 34) {
+            startActivityAndCollapse(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE));
+        } else startActivityAndCollapse(intent);
     }
 
     private void update() {
@@ -70,14 +106,20 @@ public final class SplitTileService extends TileService {
         RouteController.State state = routes.state();
         tile.setState(switch (state) {
             case ACTIVE -> Tile.STATE_ACTIVE;
-            case READY -> Tile.STATE_INACTIVE;
-            case RECOVERY -> routes.connected() ? Tile.STATE_INACTIVE : Tile.STATE_UNAVAILABLE;
-            default -> Tile.STATE_UNAVAILABLE;
+            case WORKING -> Tile.STATE_UNAVAILABLE;
+            default -> Tile.STATE_INACTIVE;
+        });
+        String subtitle = getString(switch (state) {
+            case UNAVAILABLE -> R.string.tile_state_setup;
+            case WORKING -> R.string.tile_state_working;
+            case READY -> R.string.tile_state_off;
+            case ACTIVE -> R.string.tile_state_on;
+            case RECOVERY -> R.string.tile_state_restore;
+            case BLOCKED -> R.string.tile_state_blocked;
         });
         tile.setLabel(getString(R.string.app_name));
-        tile.setSubtitle(routes.title());
-        tile.setContentDescription(getString(R.string.app_name) + ". " + routes.title() + ". " + routes.message());
-        tile.setStateDescription(routes.message());
+        tile.setSubtitle(subtitle);
+        tile.setStateDescription(subtitle + ". " + routes.message());
         tile.updateTile();
         if (awaitingFeedback && !routes.busy()) {
             awaitingFeedback = false;

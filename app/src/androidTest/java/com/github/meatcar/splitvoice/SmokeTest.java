@@ -23,9 +23,9 @@ public class SmokeTest {
     @Test public void launchesAndExplainsMissingShizuku() {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             scenario.onActivity(activity -> {
-                assertEquals("Shizuku unavailable", ((TextView) activity.findViewById(R.id.status_title)).getText().toString());
-                assertEquals(View.VISIBLE, activity.findViewById(R.id.connect).getVisibility());
-                assertEquals(View.GONE, activity.findViewById(R.id.restore).getVisibility());
+                assertEquals("Finish setup", ((TextView) activity.findViewById(R.id.status_title)).getText().toString());
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
             });
         }
     }

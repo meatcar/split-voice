@@ -1,0 +1,20 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:paddingTop="12dp" android:paddingBottom="12dp">
+    <FrameLayout android:layout_width="28dp" android:layout_height="28dp"
+        android:importantForAccessibility="noHideDescendants">
+        <TextView android:id="@+id/step_number" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:gravity="center" android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" android:background="@drawable/circle" />
+        <ImageView android:id="@+id/step_done" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:padding="5dp" android:src="@drawable/ic_check"
+            android:background="@drawable/circle" android:backgroundTint="@color/primary"
+            android:tint="@color/on_primary" />
+    </FrameLayout>
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical">
+        <TextView android:id="@+id/step_title" style="@style/Text.Title" android:layout_marginTop="3dp" />
+        <TextView android:id="@+id/step_body" style="@style/Text.Supporting" android:layout_marginTop="2dp" />
+        <Button android:id="@+id/step_action" style="@style/Button.Filled" android:layout_marginTop="12dp" />
+    </LinearLayout>
+</LinearLayout>

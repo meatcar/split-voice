@@ -26,6 +26,7 @@ final class AutoRoute {
     void stop() { routes.removeObserver(listener); }
 
     private void evaluate() {
+        if (routes.busy()) return;
         Action action = next(routes.state(), routes.mode(), routes.pending());
         if (action == Action.APPLY) routes.toggle();
         else if (action == Action.RESTORE) routes.restore();

@@ -29,6 +29,7 @@ final class RouteController {
     private final List<Runnable> listeners = new ArrayList<>();
     private IRouteService service;
     private boolean busy;
+    private boolean changing;
     private boolean binding;
     private final Runnable connectionTimeout = this::connectionTimedOut;
     private Bundle inspection;
@@ -118,6 +119,7 @@ final class RouteController {
         if (busy || binding || service == null) return;
         IRouteService remote = service;
         busy = true;
+        changing = change;
         if (change) show(restoring ? string(R.string.restoring) : string(R.string.applying));
         else notifyListeners();
         worker.execute(() -> {
@@ -162,6 +164,7 @@ final class RouteController {
             boolean disconnected = transportLost;
             main.post(() -> {
                 busy = false;
+                changing = false;
                 if (disconnected && remote == service) disconnected();
                 inspection = remote == service ? completed : null;
                 if (remote != service) show(pending() ? string(R.string.reconnect_restore) : string(R.string.reconnect));
@@ -177,23 +180,26 @@ final class RouteController {
                 result == null ? string(R.string.no_result) : result.getString("message", string(R.string.check_failed)));
     }
 
+    /** Background checks keep the last state, so the tile and screen do not flicker. */
     State state() {
-        if (busy || binding) return State.WORKING;
-        if (pending()) return service != null && inspection != null && inspection.getBoolean("matches")
-                ? State.ACTIVE : State.RECOVERY;
-        if (service == null || inspection == null) return State.UNAVAILABLE;
+        if (changing || binding || (service != null && inspection == null && busy)) return State.WORKING;
+        if (pending()) return inspection != null && inspection.getBoolean("matches") ? State.ACTIVE : State.RECOVERY;
+        if (service == null) return State.UNAVAILABLE;
+        if (inspection == null) return State.BLOCKED;
         return inspection.getBoolean("empty") && inspection.getBoolean("devicesReady") && !inspection.getBoolean("sco")
                 ? State.READY : State.BLOCKED;
     }
 
-    String title() {
-        return switch (state()) {
-            case UNAVAILABLE -> string(R.string.title_unavailable);
-            case WORKING -> string(R.string.title_working);
-            case READY -> string(R.string.title_ready);
-            case ACTIVE -> string(R.string.title_active);
-            case RECOVERY -> string(R.string.title_recovery);
-            case BLOCKED -> string(R.string.title_blocked);
+    String title() { return string(title(state())); }
+
+    static int title(State state) {
+        return switch (state) {
+            case UNAVAILABLE -> R.string.title_setup;
+            case WORKING -> R.string.title_working;
+            case READY -> R.string.title_ready;
+            case ACTIVE -> R.string.title_active;
+            case RECOVERY -> R.string.title_recovery;
+            case BLOCKED -> R.string.title_blocked;
         };
     }
 

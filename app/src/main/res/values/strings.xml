@@ -1,64 +1,108 @@
 <resources>
     <string name="app_name">Split Voice</string>
-    <string name="open_shizuku">Open Shizuku</string>
-    <string name="connect">Connect</string>
-    <string name="add_tile">Add Quick Settings tile</string>
-    <string name="tile_manual">Edit Quick Settings to add Split Voice.</string>
+    <string name="tagline">Wireless mic in. LE Audio headphones out.</string>
+
+    <string name="title_setup">Finish setup</string>
+    <string name="title_working">Working…</string>
+    <string name="title_ready">Ready to split</string>
+    <string name="title_active">Split is on</string>
+    <string name="title_recovery">Restore needed</string>
+    <string name="title_blocked">Not ready</string>
+
+    <string name="start_shizuku">Start Shizuku to continue.</string>
+    <string name="start_shizuku_restore">Start Shizuku, then tap Restore.</string>
+    <string name="allow_shizuku">Tap Connect, then allow Split Voice in Shizuku.</string>
+    <string name="not_root">Shizuku is running as root. Restart it with wireless debugging.</string>
+    <string name="connecting">Connecting to Shizuku…</string>
+    <string name="timed_out">Shizuku did not answer. Restart Shizuku, then tap Connect.</string>
+    <string name="permission_denied">Shizuku access denied. Tap Connect to ask again.</string>
+    <string name="cannot_connect">Cannot connect to Shizuku (%1$s).</string>
+    <string name="connection_failed">Lost the connection to Shizuku. Start it again.</string>
+    <string name="reconnect">Reconnect Shizuku.</string>
+    <string name="reconnect_restore">Reconnect Shizuku, then tap Restore.</string>
+    <string name="applying">Splitting audio…</string>
+    <string name="restoring">Restoring normal audio…</string>
+    <string name="record_not_cleared">Normal audio restored, but the recovery record was not cleared.</string>
+    <string name="existing_preferences">Another app already chose audio devices. Nothing changed.</string>
+    <string name="connect_exactly_one">Connect one mic receiver and one pair of LE Audio headphones. Nothing changed.</string>
+    <string name="start_voice">Start a voice chat first. Nothing changed.</string>
+    <string name="sco_active">Your headphones\' own mic is in use. Nothing changed.</string>
+    <string name="identities_unavailable">Cannot identify your devices. Nothing changed.</string>
+    <string name="cannot_save_recovery">Cannot save the recovery record. Nothing changed.</string>
+    <string name="no_result">Shizuku gave no answer. Audio state unknown.</string>
+    <string name="check_failed">Cannot read audio routing.</string>
+    <string name="stop_voice">End the voice chat, then tap Restore.</string>
+    <string name="other_app_preferences">Another app chose audio devices. Split Voice will not override it.</string>
+    <string name="connect_one">Connect one mic receiver and one pair of LE Audio headphones.</string>
+    <string name="bluetooth_mic">Your headphones\' own mic is in use. Connect the mic receiver, then restart the voice chat.</string>
+    <string name="start_voice_tap_tile">Start a voice chat, then tap Split.</string>
+
+    <string name="split">Split</string>
+    <string name="restore">Restore</string>
+
+    <string name="setup_install">Install Shizuku</string>
+    <string name="setup_install_body">Shizuku lets Split Voice change audio routing without root.</string>
+    <string name="setup_install_action">Get Shizuku</string>
+    <string name="setup_start">Start Shizuku</string>
+    <string name="setup_start_body">Start it with wireless debugging. Do this again after every restart.</string>
+    <string name="setup_start_action">Open Shizuku</string>
+    <string name="setup_connect">Connect</string>
+    <string name="setup_connect_body">Allow Split Voice when Shizuku asks.</string>
+    <string name="step_done">Done</string>
+    <string name="step_todo">To do</string>
+
+    <string name="need_receiver">Mic receiver</string>
+    <string name="need_headphones">LE Audio headphones</string>
+    <string name="need_voice_chat">Voice chat</string>
+    <string name="device_found">Connected</string>
+    <string name="device_missing">Not connected</string>
+    <string name="device_extra">%1$d connected</string>
+    <string name="voice_chat_on">In progress</string>
+    <string name="voice_chat_off">Not started</string>
+
+    <string name="options">Options</string>
+    <string name="auto_route">Split automatically</string>
+    <string name="auto_route_summary">Split when a voice chat starts. Restore when it ends.</string>
+    <string name="auto_route_paused">Paused until Split Voice connects to Shizuku.</string>
+    <string name="notifications">Restore reminder</string>
+    <string name="notifications_summary">Show a notification until normal audio is restored.</string>
+    <string name="tile">Quick Settings tile</string>
+    <string name="tile_summary">Split and restore without leaving your voice chat.</string>
+    <string name="tile_summary_added">Added. Swipe down twice to find Split Voice.</string>
+    <string name="add_tile">Add</string>
+    <string name="tile_manual">Open Quick Settings, tap Edit, and drag Split Voice in.</string>
     <string name="tile_added">Tile added.</string>
     <string name="tile_declined">Tile not added.</string>
-    <string name="check">Check routes</string>
-    <string name="restore">Restore</string>
-    <string name="notifications">Recovery notification</string>
-    <string name="notification_channel">Routing recovery</string>
-    <string name="notification_title">Restore pending</string>
-    <string name="notification_body">Stop Voice, then open controls to restore.</string>
+
+    <string name="help">Help</string>
+    <string name="how_it_works">How Split Voice works</string>
+    <string name="how_it_works_summary">Why it needs Shizuku, and how it keeps your audio safe.</string>
+    <string name="troubleshooting">Troubleshooting</string>
+    <string name="troubleshooting_summary">What each message means and what to do.</string>
     <string name="diagnostics">Copy diagnostics</string>
-    <string name="diagnostics_copied">Diagnostics copied. Paste them into your bug report.</string>
-    <string name="controls">Open controls</string>
-    <string name="start_shizuku">Start Shizuku, then connect.</string>
-    <string name="start_shizuku_restore">Start Shizuku to restore.</string>
-    <string name="allow_shizuku">Tap Connect to allow Shizuku access.</string>
-    <string name="not_root">Start Shizuku using wireless debugging, not root.</string>
-    <string name="connecting">Connecting to Shizuku...</string>
-    <string name="timed_out">Connection timed out. Restart Shizuku.</string>
-    <string name="permission_denied">Shizuku permission denied.</string>
-    <string name="restoring">Restoring...</string>
-    <string name="applying">Applying split...</string>
-    <string name="record_not_cleared">Routes restored; recovery record could not be cleared.</string>
-    <string name="existing_preferences">Existing preferences found. Nothing changed.</string>
-    <string name="connect_exactly_one">Connect exactly one receiver input and one LE headset output.</string>
-    <string name="start_voice">Start Voice before applying.</string>
-    <string name="sco_active">SCO is active. Use the physical receiver for input.</string>
-    <string name="identities_unavailable">Device identities unavailable. Nothing changed.</string>
-    <string name="cannot_save_recovery">Cannot save recovery state. Nothing applied.</string>
-    <string name="no_result">No service result. State unknown.</string>
-    <string name="check_failed">Route check failed.</string>
-    <string name="connection_failed">Connection failed. Reconnect Shizuku.</string>
-    <string name="reconnect_restore">Reconnect Shizuku to restore.</string>
-    <string name="reconnect">Reconnect Shizuku.</string>
-    <string name="title_unavailable">Shizuku unavailable</string>
-    <string name="title_working">Checking routes</string>
-    <string name="title_ready">Ready to split</string>
-    <string name="title_active">Split selected</string>
-    <string name="title_recovery">Recovery required</string>
-    <string name="title_blocked">Split unavailable</string>
-    <string name="stop_voice">Stop Voice to restore.</string>
-    <string name="other_app_preferences">Another app has routing preferences set.</string>
-    <string name="connect_one">Connect one receiver and one LE headset.</string>
-    <string name="bluetooth_mic">Bluetooth mic active. Connect the physical receiver.</string>
-    <string name="start_voice_tap_tile">Start Voice, then tap the Quick Settings tile.</string>
-    <string name="cannot_connect">Cannot connect: %1$s</string>
-    <string name="tile_setup">Long-press Split Voice for Shizuku setup and recovery.</string>
-    <string name="install_shizuku">Install Shizuku from shizuku.rikka.app</string>
-    <string name="auto_route">Split automatically</string>
-    <string name="auto_route_hint">Applies the split when a voice session starts and restores it when the session ends. A notification shows while this is on. Open the app after rebooting and restarting Shizuku.</string>
+    <string name="diagnostics_summary">For bug reports. Leaves out device names and addresses.</string>
+    <string name="diagnostics_copied">Diagnostics copied. Paste them into your report.</string>
+    <string name="report_problem">Report a problem</string>
+    <string name="report_problem_summary">Open an issue on GitHub.</string>
+    <string name="no_browser">No app can open this link.</string>
+
+    <string name="tile_state_setup">Set up</string>
+    <string name="tile_state_working">Working…</string>
+    <string name="tile_state_off">Off</string>
+    <string name="tile_state_on">On</string>
+    <string name="tile_state_restore">Restore needed</string>
+    <string name="tile_state_blocked">Not ready</string>
+
+    <string name="notification_channel">Restore reminder</string>
+    <string name="notification_title">Restore normal audio</string>
+    <string name="notification_body">End the voice chat, then open Split Voice and tap Restore.</string>
+    <string name="controls">Open Split Voice</string>
     <string name="automatic_channel">Automatic split</string>
     <string name="automatic_title">Automatic split is on</string>
-    <string name="automatic_body">Splits when a voice session starts. Restores when it ends.</string>
-    <string name="developer_settings">Open wireless debugging settings</string>
-    <string name="step_installed">Shizuku installed</string>
-    <string name="step_running">Shizuku running</string>
-    <string name="step_permission">Shizuku permission granted</string>
-    <string name="step_done">Done: %1$s</string>
-    <string name="step_todo">To do: %1$s</string>
+    <string name="automatic_body">Splits when a voice chat starts. Restores when it ends.</string>
+
+    <string name="url_shizuku_download" translatable="false">https://shizuku.rikka.app/download/</string>
+    <string name="url_how_it_works" translatable="false">https://github.com/meatcar/split-voice/blob/main/docs/explanation.md</string>
+    <string name="url_troubleshooting" translatable="false">https://github.com/meatcar/split-voice/blob/main/docs/reference.md#messages</string>
+    <string name="url_report_problem" translatable="false">https://github.com/meatcar/split-voice/issues/new/choose</string>
 </resources>
