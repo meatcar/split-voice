@@ -13,7 +13,9 @@ The app refuses to apply when it does not see exactly that pair.
 
 ## Verified
 
-Automated tests run on Android 12 (API 31) and Android 15 (API 35) emulation, and a smoke test runs on an API 34 emulator. These cover the UI, tile, notifications and recovery logic. They cannot cover real receivers or headphones, so the table below only lists reports from real hardware.
+The **Instrumented** workflow runs every week on emulators for Android 12 through 16 (API 31 to 36). On each, it runs the routing service as the shell user, as Shizuku does, and checks that the hidden audio calls still exist, accept a split and restore cleanly. Unit tests cover the screen, tile, notifications and recovery logic on Android 12 and 15.
+
+Emulators have no real receivers or headphones, so the table below only lists reports from real hardware. To run the same check on your phone, see [Check a phone with adb](how-to.md#check-a-phone-with-adb).
 
 ## Reports
 

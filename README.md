@@ -1,35 +1,24 @@
 # Split Voice
 
-Use a wireless microphone's receiver for voice input while listening through Bluetooth LE headphones. Toggle it from Android Quick Settings, with Shizuku and no root.
+Talk through a wireless mic and listen through Bluetooth LE Audio headphones in any Android voice chat. Android does not let you choose this. Split Voice does it with [Shizuku](https://shizuku.rikka.app/), without root.
 
-<img src="docs/images/setup.png" width="330" alt="Split Voice setup screen">
+<img src="docs/images/screen.png" width="330" alt="Split Voice, ready to split, with the mic receiver, headphones and voice chat all connected">
 
-## Requirements
+## Get started
 
-- Android 12 or later
-- A microphone connected through its physical receiver
-- Headphones with LE Audio enabled
-- [Shizuku](https://shizuku.rikka.app/download/) running through [wireless debugging](https://shizuku.rikka.app/guide/setup/)
+You need Android 12 or later, a mic receiver that plugs into USB-C, and headphones with LE Audio turned on.
 
-## Install
+Install the APK from [Releases](https://github.com/meatcar/split-voice/releases/latest), or add `https://github.com/meatcar/split-voice` to [Obtainium](https://obtainium.imranr.dev/) for updates. Then follow [your first split](docs/tutorial.md).
 
-Download the APK from [Releases](https://github.com/meatcar/split-voice/releases/latest), or add `https://github.com/meatcar/split-voice` in [Obtainium](https://obtainium.imranr.dev/) to install it and receive updates.
+## Documentation
 
-Open Split Voice, tap **Connect**, and grant Shizuku access. Tap **Add Quick Settings tile**. On Android 12, add the tile manually from the Quick Settings editor.
+- [Tutorial](docs/tutorial.md): set up and make your first split.
+- [How-to guides](docs/how-to.md): Quick Settings, automatic split, after a restart, restore, uninstall, report a problem.
+- [Reference](docs/reference.md): screen and tile states, every message, options, permissions, diagnostics.
+- [How it works](docs/explanation.md): why this needs Shizuku and how your audio stays safe.
+- [Compatibility](docs/compatibility.md): tested phones and devices.
 
-Shizuku needs to be started again after a phone reboot. The optional recovery notification provides a shortcut back to Split Voice.
-
-## Use
-
-1. Connect your receiver and LE headphones, then start your voice app.
-2. Tap **Split Voice** in Quick Settings to use the receiver microphone and headphone output.
-3. End the voice session, then tap the tile again to restore normal routing.
-
-Long-press the tile to open the app. If it shows **Recovery required**, stop the voice session, reconnect Shizuku, and tap **Restore**. Restore before uninstalling or clearing app data.
-
-Split Voice changes Android's audio routing. It does not record audio or require microphone or internet permission. See [PRIVACY.md](PRIVACY.md).
-
-Something not working? See [Troubleshooting](docs/troubleshooting.md). Tap **Copy diagnostics** in the app before you open a [bug report](https://github.com/meatcar/split-voice/issues/new/choose).
+Split Voice does not record audio and has no internet or microphone permission. See [PRIVACY.md](PRIVACY.md).
 
 ## Build
 
@@ -45,7 +34,7 @@ The APK is at `app/build/outputs/apk/debug/app-debug.apk`. See [CONTRIBUTING.md]
 
 ## Disclaimer
 
-Split Voice uses Android's hidden audio APIs and changes system-wide routing; compatibility varies by device and Android version. See [Compatibility](docs/compatibility.md) and report what works for you.
+Split Voice uses hidden Android audio APIs and changes system-wide routing. Results vary by phone and Android version. Restore before you uninstall it. Report what works for you in a [compatibility report](https://github.com/meatcar/split-voice/issues/new?template=compatibility.yml).
 
 ## Credits and license
 

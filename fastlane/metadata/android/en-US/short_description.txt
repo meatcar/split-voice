@@ -1,1 +1,1 @@
-Wireless mic in, Bluetooth LE headphones out, from Quick Settings.
+Wireless mic in, LE Audio headphones out, in any voice chat.

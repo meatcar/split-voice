@@ -4,7 +4,8 @@ Split Voice collects, stores and sends no personal data. It has no analytics, no
 accounts, no ads and no crash reporting.
 
 - **Network:** the app does not request the internet permission. It cannot send
-  anything off the phone. The links it opens (Shizuku's guide) open in your browser.
+  anything off the phone. Links to Shizuku, the documentation and GitHub issues open in
+  your browser.
 - **Audio:** it does not record audio and does not request microphone permission.
   It only asks Android which audio devices are connected and sets which input and
   output Android prefers.
@@ -13,7 +14,7 @@ accounts, no ads and no crash reporting.
   record is deleted when routing is restored. Backups and device transfers do not
   include it.
 - **Permissions:** Shizuku access, which you grant, to change audio routing.
-  Notification permission, which is optional, for the recovery notification.
+  Notification permission, which is optional, for the restore reminder.
   Foreground service permission, used only while you have **Split automatically**
   turned on, to watch for voice sessions. It stays off by default.
 - **Diagnostics:** **Copy diagnostics** puts a text summary on your clipboard
