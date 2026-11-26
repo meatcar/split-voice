@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -82,7 +83,7 @@ final class RouteController {
                 else show(string(R.string.allow_shizuku));
                 return;
             }
-            if (Shizuku.getUid() != 2000) {
+            if (Shizuku.getUid() != RouteService.SHELL_UID) {
                 show(string(R.string.not_root));
                 return;
             }
@@ -135,7 +136,7 @@ final class RouteController {
                         requireSuccess(selection);
                         RouteTrial.require(selection.getBoolean("empty"), string(R.string.existing_preferences));
                         RouteTrial.require(selection.getBoolean("devicesReady"), string(R.string.connect_exactly_one));
-                        RouteTrial.require(selection.getInt("mode") == 3, string(R.string.start_voice));
+                        RouteTrial.require(selection.getInt("mode") == AudioManager.MODE_IN_COMMUNICATION, string(R.string.start_voice));
                         RouteTrial.require(!selection.getBoolean("sco"), string(R.string.sco_active));
                         String receiver = selection.getString("receiver");
                         String earbuds = selection.getString("earbuds");

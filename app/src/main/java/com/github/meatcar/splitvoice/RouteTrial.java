@@ -1,9 +1,18 @@
 package com.github.meatcar.splitvoice;
 
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+
 import java.util.List;
 
 final class RouteTrial {
-    record Device(int role, int type, String address) {}
+    private static final int ROLE_INPUT = 1;
+    private static final int ROLE_OUTPUT = 2;
+
+    record Device(int role, int type, String address) {
+        static Device receiver(String address) { return new Device(ROLE_INPUT, AudioDeviceInfo.TYPE_USB_DEVICE, address); }
+        static Device headphones(String address) { return new Device(ROLE_OUTPUT, AudioDeviceInfo.TYPE_BLE_HEADSET, address); }
+    }
 
     interface Backend {
         int mode() throws Exception;
@@ -15,7 +24,7 @@ final class RouteTrial {
     }
 
     static void apply(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == 3, "Start Voice before applying.");
+        require(backend.mode() == AudioManager.MODE_IN_COMMUNICATION, "Start Voice before applying.");
         require(!backend.sco(), "SCO is active. Connect the physical receiver instead of Bluetooth mic input.");
         require(backend.input().isEmpty() && backend.output().isEmpty(),
                 "Existing preferences found. Only an empty baseline is supported.");
@@ -31,7 +40,7 @@ final class RouteTrial {
     }
 
     static void restore(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == 0, "Stop Voice before restoring.");
+        require(backend.mode() == AudioManager.MODE_NORMAL, "Stop Voice before restoring.");
         require(compatible(backend.input(), receiver) && compatible(backend.output(), earbuds),
                 "Preferences changed outside Split Voice. Refusing to overwrite them.");
         Exception failure = null;

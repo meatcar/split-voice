@@ -1,13 +1,11 @@
 package com.github.meatcar.splitvoice;
 
 import android.content.Context;
+import android.media.AudioManager;
 
 // NOTE: once per voice session, never retried; actions go through the controller so safety checks apply
 final class AutoRoute {
     enum Action { NONE, APPLY, RESTORE }
-
-    private static final int MODE_NORMAL = 0;
-    private static final int MODE_VOICE = 3;
 
     private final RouteController routes;
     private final Runnable listener = this::evaluate;
@@ -35,14 +33,14 @@ final class AutoRoute {
 
     Action next(RouteController.State state, int mode, boolean pending) {
         if (state == RouteController.State.WORKING) return Action.NONE;
-        if (mode == MODE_VOICE) {
+        if (mode == AudioManager.MODE_IN_COMMUNICATION) {
             restoreAttempted = false;
             if (state != RouteController.State.READY || applyAttempted) return Action.NONE;
             applyAttempted = true;
             return Action.APPLY;
         }
         applyAttempted = false;
-        if (mode != MODE_NORMAL || !pending || !routes.connected() || restoreAttempted) return Action.NONE;
+        if (mode != AudioManager.MODE_NORMAL || !pending || !routes.connected() || restoreAttempted) return Action.NONE;
         restoreAttempted = true;
         return Action.RESTORE;
     }

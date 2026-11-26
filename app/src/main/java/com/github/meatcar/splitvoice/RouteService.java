@@ -4,74 +4,18 @@ import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.Process;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class RouteService extends IRouteService.Stub {
-    private final Class<?> api;
-    private final Object audio;
+    static final int SHELL_UID = 2000;
     private final RouteTrial.Backend backend;
 
     public RouteService() throws Exception {
-        RouteTrial.require(Process.myUid() == 2000, "Shell UID 2000 required; root is not supported.");
-        IBinder binder = (IBinder) Class.forName("android.os.ServiceManager")
-                .getMethod("getService", String.class).invoke(null, "audio");
-        api = Class.forName("android.media.IAudioService");
-        audio = Class.forName("android.media.IAudioService$Stub")
-                .getMethod("asInterface", IBinder.class).invoke(null, binder);
-        backend = new RouteTrial.Backend() {
-            public int mode() throws Exception { return (Integer) call("getMode", new Class<?>[0]); }
-            public boolean sco() throws Exception { return (Boolean) call("isBluetoothScoOn", new Class<?>[0]); }
-            public List<RouteTrial.Device> input() throws Exception { return preferences(true); }
-            public List<RouteTrial.Device> output() throws Exception { return preferences(false); }
-            public void input(List<RouteTrial.Device> devices) throws Exception { set(true, devices); }
-            public void output(List<RouteTrial.Device> devices) throws Exception { set(false, devices); }
-        };
-    }
-
-    private Object call(String method, Class<?>[] types, Object... args) throws Exception {
-        try {
-            return api.getMethod(method, types).invoke(audio, args);
-        } catch (InvocationTargetException e) {
-            throw new IllegalStateException("AudioService rejected " + method, e.getCause());
-        }
-    }
-
-    private List<RouteTrial.Device> preferences(boolean input) throws Exception {
-        List<?> raw = (List<?>) call(input ? "getPreferredDevicesForCapturePreset" : "getPreferredDevicesForStrategy",
-                new Class<?>[]{int.class}, input ? 7 : 1);
-        List<RouteTrial.Device> result = new ArrayList<>();
-        for (Object device : raw) {
-            Class<?> cls = device.getClass();
-            result.add(new RouteTrial.Device((Integer) cls.getMethod("getRole").invoke(device),
-                    (Integer) cls.getMethod("getType").invoke(device),
-                    (String) cls.getMethod("getAddress").invoke(device)));
-        }
-        return result;
-    }
-
-    private void set(boolean input, List<RouteTrial.Device> devices) throws Exception {
-        if (devices.isEmpty() && preferences(input).isEmpty()) return;
-        String method;
-        int result;
-        if (devices.isEmpty()) {
-            method = input ? "clearPreferredDevicesForCapturePreset" : "removePreferredDevicesForStrategy";
-            result = (Integer) call(method, new Class<?>[]{int.class}, input ? 7 : 1);
-        } else {
-            List<Object> attributes = new ArrayList<>();
-            for (RouteTrial.Device device : devices) {
-                attributes.add(Class.forName("android.media.AudioDeviceAttributes")
-                        .getConstructor(int.class, int.class, String.class)
-                        .newInstance(device.role(), device.type(), device.address()));
-            }
-            method = input ? "setPreferredDevicesForCapturePreset" : "setPreferredDevicesForStrategy";
-            result = (Integer) call(method, new Class<?>[]{int.class, List.class}, input ? 7 : 1, attributes);
-        }
-        RouteTrial.require(result == 0, method + " returned " + result);
+        RouteTrial.require(Process.myUid() == SHELL_UID, "Shell UID 2000 required; root is not supported.");
+        backend = new AudioServiceBackend();
     }
 
     private AudioDeviceInfo[] devices() throws Exception {
@@ -104,8 +48,8 @@ public final class RouteService extends IRouteService.Stub {
         boolean sameDevices = receiver != null && earbuds != null && result.getBoolean("devicesReady")
                 && receiver.equals(result.getString("receiver")) && earbuds.equals(result.getString("earbuds"));
         result.putBoolean("matches", sameDevices && !result.getBoolean("sco")
-                && RouteTrial.matches(backend, new RouteTrial.Device(1, 11, receiver),
-                new RouteTrial.Device(2, 26, earbuds)));
+                && RouteTrial.matches(backend, RouteTrial.Device.receiver(receiver),
+                RouteTrial.Device.headphones(earbuds)));
         result.putBoolean("ok", true);
         return result;
     }
@@ -115,8 +59,8 @@ public final class RouteService extends IRouteService.Stub {
         try {
             if (operation.equals("inspect")) return inspectRoutes(receiver, earbuds);
             RouteTrial.require(receiver != null && earbuds != null, "Missing recovery device identities. Preserve app data.");
-            RouteTrial.Device input = new RouteTrial.Device(1, 11, receiver);
-            RouteTrial.Device output = new RouteTrial.Device(2, 26, earbuds);
+            RouteTrial.Device input = RouteTrial.Device.receiver(receiver);
+            RouteTrial.Device output = RouteTrial.Device.headphones(earbuds);
             if (operation.equals("apply")) {
                 Bundle current = inspectRoutes(receiver, earbuds);
                 RouteTrial.require(current.getBoolean("devicesReady") && receiver.equals(current.getString("receiver"))

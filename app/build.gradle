@@ -40,8 +40,9 @@ def licenseAssets = tasks.register('licenseAssets', Sync) {
 tasks.named('preBuild') { dependsOn licenseAssets }
 
 def coverageClasses = fileTree(layout.buildDirectory.dir('intermediates/javac/debug/compileDebugJavaWithJavac/classes')) {
-    // NOTE: RouteService runs in Shizuku's shell process against hidden APIs; only a phone can exercise it.
-    exclude '**/R.class', '**/R$*.class', '**/BuildConfig.class', '**/IRouteService*.class', '**/RouteService*.class'
+    // NOTE: these run in Shizuku's shell process against hidden APIs; AudioServiceContractTest covers them on emulators.
+    exclude '**/R.class', '**/R$*.class', '**/BuildConfig.class', '**/IRouteService*.class', '**/RouteService*.class',
+            '**/AudioServiceBackend*.class'
 }
 tasks.register('verifyCoverage', JacocoCoverageVerification) {
     dependsOn 'testDebugUnitTest'
