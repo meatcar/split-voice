@@ -22,6 +22,10 @@ public final class AudioServiceProbe {
     }
 
     private static void run() throws Exception {
+        printStrategies();
+        AudioServiceBackend direct = new AudioServiceBackend();
+        direct.input();
+        direct.output();
         Bundle state = new RouteService().inspect(null, null);
         RouteTrial.require(state.getBoolean("ok"), "inspect failed: " + state.getString("message"));
         RouteTrial.require(state.getBoolean("empty"), "emulator already has routing preferences");
@@ -41,6 +45,16 @@ public final class AudioServiceProbe {
             RouteTrial.restore(withMode(audio, AudioManager.MODE_NORMAL), receiver, headphones);
         }
         RouteTrial.require(audio.input().isEmpty() && audio.output().isEmpty(), "preferences left after restore");
+    }
+
+    private static void printStrategies() throws Exception {
+        AudioAttributes voice = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).build();
+        for (Object strategy : (List<?>) AudioManager.class.getMethod("getAudioProductStrategies").invoke(null)) {
+            Class<?> type = strategy.getClass();
+            System.out.println("strategy " + type.getMethod("getId").invoke(strategy) + " "
+                    + type.getMethod("getName").invoke(strategy) + " voice="
+                    + type.getMethod("supportsAudioAttributes", AudioAttributes.class).invoke(strategy, voice));
+        }
     }
 
     private static boolean phoneStrategyServesVoiceChat() throws Exception {
