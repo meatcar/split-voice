@@ -17,6 +17,8 @@ public final class AudioServiceProbe {
         } catch (Throwable failure) {
             failure.printStackTrace(System.out);
         }
+        // NOTE: app_process waits for binder threads, which never stop; exit explicitly
+        System.exit(0);
     }
 
     private static void run() throws Exception {

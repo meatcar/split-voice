@@ -23,8 +23,8 @@ public class AudioServiceContractTest {
         Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
         String classpath = instrumentation.getTargetContext().getPackageCodePath()
                 + ":" + instrumentation.getContext().getPackageCodePath();
-        String output = shell("CLASSPATH=" + classpath + " app_process /system/bin "
-                + AudioServiceProbe.class.getName() + " 2>&1\n");
+        String output = shell("CLASSPATH=" + classpath + " timeout 120 app_process /system/bin "
+                + AudioServiceProbe.class.getName() + " 2>&1; echo exit=$?\n");
         assertTrue(output, output.contains(AudioServiceProbe.PASS));
     }
 
