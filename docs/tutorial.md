@@ -4,7 +4,7 @@ This tutorial takes you from a fresh install to a voice chat that uses your wire
 
 You need:
 
-- An Android 12 or later phone with Wi-Fi.
+- An Android 16 or later phone with Wi-Fi.
 - A wireless mic whose receiver plugs into the phone's USB-C port.
 - Headphones with LE Audio turned on. On Samsung phones, turn it on in the headphones' Bluetooth settings.
 - An app with voice chat, such as ChatGPT or a calling app.

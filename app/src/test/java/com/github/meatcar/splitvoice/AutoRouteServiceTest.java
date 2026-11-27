@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {31, 35})
+@Config(sdk = {36, 37})
 public class AutoRouteServiceTest {
     private final Context context = RuntimeEnvironment.getApplication();
 

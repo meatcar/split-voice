@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 35)
+@Config(sdk = 37)
 public class RouteControllerTest {
     private final Context context = RuntimeEnvironment.getApplication();
     private final SharedPreferences journal = context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);

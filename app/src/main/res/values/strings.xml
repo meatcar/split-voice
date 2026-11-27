@@ -70,7 +70,6 @@
     <string name="tile_summary">Split and restore without leaving your voice chat.</string>
     <string name="tile_summary_added">Added. Swipe down twice to find Split Voice.</string>
     <string name="add_tile">Add</string>
-    <string name="tile_manual">Open Quick Settings, tap Edit, and drag Split Voice in.</string>
     <string name="tile_added">Tile added.</string>
     <string name="tile_declined">Tile not added.</string>
 

@@ -13,7 +13,6 @@ import android.graphics.drawable.Icon;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -70,7 +69,7 @@ public final class MainActivity extends Activity {
         CompoundButton notifications = findViewById(R.id.notifications);
         notifications.setText(twoLine(R.string.notifications, getString(R.string.notifications_summary)));
         notifications.setOnClickListener(view -> {
-            if (notifications.isChecked() && Build.VERSION.SDK_INT >= 33
+            if (notifications.isChecked()
                     && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 notifications.setChecked(false);
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION);
@@ -293,10 +292,6 @@ public final class MainActivity extends Activity {
     }
 
     private void addTile() {
-        if (Build.VERSION.SDK_INT < 33) {
-            Toast.makeText(this, R.string.tile_manual, Toast.LENGTH_LONG).show();
-            return;
-        }
         getSystemService(StatusBarManager.class).requestAddTileService(
                 new ComponentName(this, SplitTileService.class), getString(R.string.app_name),
                 Icon.createWithResource(this, R.drawable.ic_split_voice), getMainExecutor(), result -> {

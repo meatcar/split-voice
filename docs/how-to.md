@@ -4,7 +4,7 @@ Each guide assumes you finished [your first split](tutorial.md).
 
 ## Split from Quick Settings
 
-1. In Split Voice, tap **Add** next to **Quick Settings tile**, then confirm. On Android 12, open Quick Settings, tap the edit button and drag **Split Voice** in.
+1. In Split Voice, tap **Add** next to **Quick Settings tile**, then confirm.
 2. Start a voice chat.
 3. Swipe down twice and tap **Split Voice**. The tile turns on.
 4. After the voice chat ends, tap the tile again to restore.

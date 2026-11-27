@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         # NOTE: every Android version the app supports; hidden audio APIs can change in any of them
-        api-level: [31, 32, 33, 34, 35, 36]
+        api-level: [36, "37.0"]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

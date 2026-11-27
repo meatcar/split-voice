@@ -36,7 +36,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {31, 35}, qualifiers = "w360dp-h720dp-mdpi")
+@Config(sdk = {36, 37}, qualifiers = "w360dp-h720dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class MainActivityTest {
     @Test public void firstLaunchWalksThroughSetupOneStepAtATime() throws Exception {
@@ -169,20 +169,7 @@ public class MainActivityTest {
         }
     }
 
-    @Config(sdk = 31) @Test public void androidTwelveExplainsManualTileSetupAndNeedsNoNotificationPermission() {
-        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
-            MainActivity activity = controller.get();
-            activity.findViewById(R.id.add_tile).performClick();
-            assertEquals("Open Quick Settings, tap Edit, and drag Split Voice in.", ShadowToast.getTextOfLatestToast());
-            CompoundButton notifications = activity.findViewById(R.id.notifications);
-            notifications.performClick();
-            assertTrue(notifications.isChecked());
-            assertTrue(RecoveryNotification.enabled(activity));
-            assertNull(shadowOf(activity).getLastRequestedPermission());
-        }
-    }
-
-    @Config(sdk = 35) @Test public void androidThirteenAsksForNotificationPermissionBeforeEnablingReminder() {
+    @Test public void asksForNotificationPermissionBeforeEnablingReminder() {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
             CompoundButton notifications = activity.findViewById(R.id.notifications);
@@ -202,7 +189,7 @@ public class MainActivityTest {
         assertReadableTheme(true);
     }
 
-    @Config(sdk = 35) @Test public void launcherIconIsAdaptiveAndThemeable() throws Exception {
+    @Test public void launcherIconIsAdaptiveAndThemeable() throws Exception {
         var app = RuntimeEnvironment.getApplication();
         assertEquals(R.mipmap.ic_launcher, app.getApplicationInfo().icon);
         var icon = app.getDrawable(R.mipmap.ic_launcher);

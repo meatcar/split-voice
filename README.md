@@ -6,7 +6,7 @@ Talk through a wireless mic and listen through Bluetooth LE Audio headphones in 
 
 ## Get started
 
-You need Android 12 or later, a mic receiver that plugs into USB-C, and headphones with LE Audio turned on.
+You need Android 16 or later, a mic receiver that plugs into USB-C, and headphones with LE Audio turned on.
 
 Install the APK from [Releases](https://github.com/meatcar/split-voice/releases/latest), or add `https://github.com/meatcar/split-voice` to [Obtainium](https://obtainium.imranr.dev/) for updates. Then follow [your first split](docs/tutorial.md).
 

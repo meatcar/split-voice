@@ -13,7 +13,7 @@ import org.robolectric.util.ReflectionHelpers;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 35)
+@Config(sdk = 37)
 public class AutoRouteTest {
     private final Context context = RuntimeEnvironment.getApplication();
     private final SharedPreferences journal = context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);

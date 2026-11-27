@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {31, 35}, shadows = SplitTileServiceTest.LifecycleTileShadow.class)
+@Config(sdk = {36, 37}, shadows = SplitTileServiceTest.LifecycleTileShadow.class)
 public class SplitTileServiceTest {
     // NOTE: Robolectric 4.14.1's tile shadow lacks ShadowService inheritance.
     @Implements(TileService.class)

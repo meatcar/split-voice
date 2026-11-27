@@ -7,6 +7,6 @@ How it works: Split Voice asks Android to prefer the mic receiver for voice chat
 - No audio recording and no microphone permission
 - No internet permission, analytics or accounts
 - Clear setup steps and a restore reminder
-- Android 12 or later, a USB mic receiver and LE Audio headphones
+- Android 16 or later, a USB mic receiver and LE Audio headphones
 
 Split Voice changes Android's audio routing. Restore before you uninstall it.

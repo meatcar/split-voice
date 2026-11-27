@@ -23,8 +23,8 @@
             };
           };
           sdk = (androidPkgs.androidenv.composeAndroidPackages {
-            platformVersions = [ "35" ];
-            buildToolsVersions = [ "35.0.0" ];
+            platformVersions = [ "36" ];
+            buildToolsVersions = [ "36.0.0" ];
             includeEmulator = false;
             includeSources = false;
             includeNDK = false;
@@ -34,8 +34,8 @@
           legacyPackages = pkgs;
           devShells.default = pkgs.mkShell {
             name = "split-voice";
-            packages = [ pkgs.jdk17 pkgs.gradle sdk pkgs.shellcheck pkgs.git-cliff ];
-            JAVA_HOME = "${pkgs.jdk17}";
+            packages = [ pkgs.jdk21 pkgs.gradle sdk pkgs.shellcheck pkgs.git-cliff ];
+            JAVA_HOME = "${pkgs.jdk21}";
             ANDROID_HOME = "${sdk}/libexec/android-sdk";
             ANDROID_SDK_ROOT = "${sdk}/libexec/android-sdk";
           };

@@ -4,7 +4,7 @@
 
 | Need | Detail |
 | --- | --- |
-| Android | 12 (API 31) or later |
+| Android | 16 (API 36) or later |
 | Mic receiver | Exactly one input that Android reports as a USB device (`TYPE_USB_DEVICE`) |
 | Headphones | Exactly one output that Android reports as an LE Audio headset (`TYPE_BLE_HEADSET`) |
 | Shizuku | Started with wireless debugging or adb (shell user, uid 2000). Root is refused. |
@@ -93,7 +93,7 @@ The recovery record is `routing-recovery`: `pending`, `receiver` and `earbuds`. 
 | Permission | Used for |
 | --- | --- |
 | Shizuku | Changing audio routing |
-| `POST_NOTIFICATIONS` | Restore reminder and the automatic split notification (Android 13+) |
+| `POST_NOTIFICATIONS` | Restore reminder and the automatic split notification |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Watching for voice chats while **Split automatically** is on |
 
 Split Voice has no internet or microphone permission.

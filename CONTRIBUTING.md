@@ -21,8 +21,8 @@ message or state, update `docs/reference.md`.
 
 | Layer | Runs | Covers |
 | --- | --- | --- |
-| Unit tests (`./check`) | Every push and PR | Routing rules with an in-memory backend, controller and tile with simulated Binder replies, every screen state with Robolectric on Android 12 and 15 |
-| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 31 to 36. It checks that the hidden calls exist, that a product strategy serves voice chat, and that a split of fake devices applies and restores. It also runs a smoke test of the screen. |
+| Unit tests (`./check`) | Every push and PR | Routing rules with an in-memory backend, controller and tile with simulated Binder replies, every screen state with Robolectric on API 36 and 37 |
+| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 36 and 37, the two supported Android versions. It checks that the hidden calls exist, that a product strategy serves voice chat, and that a split of the emulator's built-in mic and speaker applies and restores. It also runs a smoke test of the screen. |
 | Hardware checklist | Before a release that touches routing | Below |
 
 `./check` enforces a line-coverage floor on everything except `RouteService` and
@@ -76,7 +76,7 @@ Redact device identifiers and personal content from logs and screenshots.
 ## Development environments
 
 The committed Nix lock pins the Linux toolchain. Android Studio can also open the
-Gradle project with JDK 17 and SDK/build tools 35. For Nix builds, `check` selects
+Gradle project with JDK 21 and SDK/build tools 36. For Nix builds, `check` selects
 the Nix-provided aapt2 binary. No build or test command contacts a phone.
 
 Development APKs use local signing keys. Build on the same machine to install

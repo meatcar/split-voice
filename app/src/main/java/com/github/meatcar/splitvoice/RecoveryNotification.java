@@ -8,7 +8,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 
 final class RecoveryNotification {
     private static final String CHANNEL = "recovery";
@@ -16,8 +15,7 @@ final class RecoveryNotification {
 
     static boolean enabled(Context context) {
         return context.getSharedPreferences("settings", Context.MODE_PRIVATE).getBoolean("notifications", false)
-                && (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                == PackageManager.PERMISSION_GRANTED);
+                && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
     }
 
     static void setEnabled(Context context, boolean enabled, RouteController routes) {
@@ -45,7 +43,6 @@ final class RecoveryNotification {
                 .setVisibility(Notification.VISIBILITY_PRIVATE).setShowWhen(false)
                 .addAction(new Notification.Action.Builder(null, context.getString(R.string.controls), controls).build())
                 .build();
-        if (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                == PackageManager.PERMISSION_GRANTED) manager.notify(ID, notification);
+        manager.notify(ID, notification);
     }
 }

@@ -7,4 +7,4 @@ if (( $# == 0 )); then
   set -- testDebugUnitTest verifyCoverage lintDebug assembleDebug
 fi
 exec gradle -p "$root" --no-daemon --console=plain \
-  "-Pandroid.aapt2FromMavenOverride=$ANDROID_HOME/build-tools/35.0.0/aapt2" "$@"
+  "-Pandroid.aapt2FromMavenOverride=$ANDROID_HOME/build-tools/36.0.0/aapt2" "$@"
