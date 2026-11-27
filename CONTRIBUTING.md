@@ -22,7 +22,7 @@ message or state, update `docs/reference.md`.
 | Layer | Runs | Covers |
 | --- | --- | --- |
 | Unit tests (`./check`) | Every push and PR | Routing rules with an in-memory backend, controller and tile with simulated Binder replies, every screen state with Robolectric on Android 12 and 15 |
-| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 31 to 36. It checks that the hidden calls exist, that strategy 1 serves voice chat, and that a split of fake devices applies and restores. It also runs a smoke test of the screen. |
+| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 31 to 36. It checks that the hidden calls exist, that a product strategy serves voice chat, and that a split of fake devices applies and restores. It also runs a smoke test of the screen. |
 | Hardware checklist | Before a release that touches routing | Below |
 
 `./check` enforces a line-coverage floor on everything except `RouteService` and
@@ -46,7 +46,7 @@ paired wireless debugging so USB stays free for the receiver.
 3. Check mic input and headphone playback separately, including after opening
    Quick Settings.
 4. End the voice chat, tap **Restore**, and confirm `dumpsys audio` lists no
-   preferred devices for capture preset 7 or strategy 1.
+   preferred devices for capture preset 7 or the phone strategy.
 5. Repeat with the tile, and with **Split automatically**.
 6. Add the result to `docs/compatibility.md`.
 

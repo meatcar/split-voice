@@ -122,6 +122,6 @@ Split Voice has no internet or microphone permission.
 | Call | Target | Device |
 | --- | --- | --- |
 | `IAudioService.setPreferredDevicesForCapturePreset` | Capture preset 7 (`VOICE_COMMUNICATION`) | The receiver |
-| `IAudioService.setPreferredDevicesForStrategy` | Product strategy 1 (phone) | The headphones |
+| `IAudioService.setPreferredDevicesForStrategy` | The product strategy that serves `USAGE_VOICE_COMMUNICATION` | The headphones |
 
 Restore calls `clearPreferredDevicesForCapturePreset` and `removePreferredDevicesForStrategy` for the same targets. Nothing else on the phone changes.

@@ -1,5 +1,6 @@
 package com.github.meatcar.splitvoice;
 
+import android.media.AudioAttributes;
 import android.os.IBinder;
 
 import java.lang.reflect.InvocationTargetException;
@@ -9,12 +10,12 @@ import java.util.List;
 // NOTE: hidden IAudioService API; AudioServiceContractTest checks it on each emulator in the Instrumented workflow
 final class AudioServiceBackend implements RouteTrial.Backend {
     private static final int CAPTURE_PRESET_VOICE_COMMUNICATION = 7;
-    static final int STRATEGY_PHONE = 1;
     private static final Class<?>[] TARGET = {int.class};
     private static final Class<?>[] TARGET_DEVICES = {int.class, List.class};
 
     private final Class<?> api;
     private final Object audio;
+    private final int voiceStrategy;
 
     AudioServiceBackend() throws Exception {
         IBinder binder = (IBinder) Class.forName("android.os.ServiceManager")
@@ -22,6 +23,19 @@ final class AudioServiceBackend implements RouteTrial.Backend {
         api = Class.forName("android.media.IAudioService");
         audio = Class.forName("android.media.IAudioService$Stub")
                 .getMethod("asInterface", IBinder.class).invoke(null, binder);
+        voiceStrategy = voiceStrategy();
+    }
+
+    // NOTE: strategy IDs come from the device audio policy; emulators use 0 or 15, not 1
+    private int voiceStrategy() throws Exception {
+        AudioAttributes voice = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).build();
+        for (Object strategy : (List<?>) call("getAudioProductStrategies", new Class<?>[0])) {
+            Class<?> type = strategy.getClass();
+            if ((Boolean) type.getMethod("supportsAudioAttributes", AudioAttributes.class).invoke(strategy, voice)) {
+                return (Integer) type.getMethod("getId").invoke(strategy);
+            }
+        }
+        throw new IllegalStateException("No audio strategy serves voice chat on this phone.");
     }
 
     @Override public int mode() throws Exception { return (Integer) call("getMode", new Class<?>[0]); }
@@ -39,7 +53,7 @@ final class AudioServiceBackend implements RouteTrial.Backend {
         }
     }
 
-    private static int target(boolean input) { return input ? CAPTURE_PRESET_VOICE_COMMUNICATION : STRATEGY_PHONE; }
+    private int target(boolean input) { return input ? CAPTURE_PRESET_VOICE_COMMUNICATION : voiceStrategy; }
 
     private List<RouteTrial.Device> preferences(boolean input) throws Exception {
         List<?> raw = (List<?>) call(input ? "getPreferredDevicesForCapturePreset" : "getPreferredDevicesForStrategy",

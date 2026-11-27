@@ -1,6 +1,5 @@
 package com.github.meatcar.splitvoice;
 
-import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.os.Bundle;
 
@@ -22,20 +21,13 @@ public final class AudioServiceProbe {
     }
 
     private static void run() throws Exception {
-        printStrategies();
-        AudioServiceBackend direct = new AudioServiceBackend();
-        direct.input();
-        direct.output();
+        AudioServiceBackend audio = new AudioServiceBackend();
+        RouteTrial.require(audio.input().isEmpty() && audio.output().isEmpty(), "emulator already has routing preferences");
         Bundle state = new RouteService().inspect(null, null);
         RouteTrial.require(state.getBoolean("ok"), "inspect failed: " + state.getString("message"));
-        RouteTrial.require(state.getBoolean("empty"), "emulator already has routing preferences");
         RouteTrial.require(state.getIntArray("inputTypes").length > 0, "inspect listed no input devices");
         RouteTrial.require(state.getInt("mode") == AudioManager.MODE_NORMAL, "unexpected audio mode " + state.getInt("mode"));
 
-        RouteTrial.require(phoneStrategyServesVoiceChat(),
-                "strategy " + AudioServiceBackend.STRATEGY_PHONE + " does not serve voice communication");
-
-        AudioServiceBackend audio = new AudioServiceBackend();
         RouteTrial.Device receiver = RouteTrial.Device.receiver("card=7;device=0");
         RouteTrial.Device headphones = RouteTrial.Device.headphones("12:34:56:78:9A:BC");
         try {
@@ -45,26 +37,6 @@ public final class AudioServiceProbe {
             RouteTrial.restore(withMode(audio, AudioManager.MODE_NORMAL), receiver, headphones);
         }
         RouteTrial.require(audio.input().isEmpty() && audio.output().isEmpty(), "preferences left after restore");
-    }
-
-    private static void printStrategies() throws Exception {
-        AudioAttributes voice = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).build();
-        for (Object strategy : (List<?>) AudioManager.class.getMethod("getAudioProductStrategies").invoke(null)) {
-            Class<?> type = strategy.getClass();
-            System.out.println("strategy " + type.getMethod("getId").invoke(strategy) + " "
-                    + type.getMethod("getName").invoke(strategy) + " voice="
-                    + type.getMethod("supportsAudioAttributes", AudioAttributes.class).invoke(strategy, voice));
-        }
-    }
-
-    private static boolean phoneStrategyServesVoiceChat() throws Exception {
-        AudioAttributes voice = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).build();
-        for (Object strategy : (List<?>) AudioManager.class.getMethod("getAudioProductStrategies").invoke(null)) {
-            if ((Integer) strategy.getClass().getMethod("getId").invoke(strategy) != AudioServiceBackend.STRATEGY_PHONE) continue;
-            return (Boolean) strategy.getClass().getMethod("supportsAudioAttributes", AudioAttributes.class)
-                    .invoke(strategy, voice);
-        }
-        return false;
     }
 
     // NOTE: an emulator cannot start a real voice chat; the probe fakes only the mode check

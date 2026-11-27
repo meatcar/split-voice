@@ -11,7 +11,7 @@ Android can route input and output to different devices. Apps that manage their 
 Android's audio service keeps a list of preferred devices for each kind of audio. Split Voice sets two of them:
 
 - For voice chat input (capture preset `VOICE_COMMUNICATION`), it prefers the mic receiver.
-- For phone and voice chat output (product strategy 1), it prefers the LE Audio headphones.
+- For voice chat output (the product strategy that serves `USAGE_VOICE_COMMUNICATION`), it prefers the LE Audio headphones. Its ID differs between phones, so Split Voice looks it up each time.
 
 Every app's voice chat then uses the receiver to listen and the headphones to play. Restore clears both preferences, so Android goes back to its own choices.
 
