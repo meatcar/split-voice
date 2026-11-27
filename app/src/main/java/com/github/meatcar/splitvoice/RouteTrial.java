@@ -6,8 +6,8 @@ import android.media.AudioManager;
 import java.util.List;
 
 final class RouteTrial {
-    private static final int ROLE_INPUT = 1;
-    private static final int ROLE_OUTPUT = 2;
+    static final int ROLE_INPUT = 1;
+    static final int ROLE_OUTPUT = 2;
 
     record Device(int role, int type, String address) {
         static Device receiver(String address) { return new Device(ROLE_INPUT, AudioDeviceInfo.TYPE_USB_DEVICE, address); }

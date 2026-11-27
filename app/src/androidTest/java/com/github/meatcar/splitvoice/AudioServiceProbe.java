@@ -1,5 +1,6 @@
 package com.github.meatcar.splitvoice;
 
+import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Bundle;
 
@@ -28,8 +29,8 @@ public final class AudioServiceProbe {
         RouteTrial.require(state.getIntArray("inputTypes").length > 0, "inspect listed no input devices");
         RouteTrial.require(state.getInt("mode") == AudioManager.MODE_NORMAL, "unexpected audio mode " + state.getInt("mode"));
 
-        RouteTrial.Device receiver = RouteTrial.Device.receiver("card=7;device=0");
-        RouteTrial.Device headphones = RouteTrial.Device.headphones("12:34:56:78:9A:BC");
+        RouteTrial.Device receiver = attached(RouteTrial.ROLE_INPUT, AudioDeviceInfo.TYPE_BUILTIN_MIC);
+        RouteTrial.Device headphones = attached(RouteTrial.ROLE_OUTPUT, AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
         try {
             RouteTrial.apply(withMode(audio, AudioManager.MODE_IN_COMMUNICATION), receiver, headphones);
             RouteTrial.require(RouteTrial.matches(audio, receiver, headphones), "readback after apply differs");
@@ -37,6 +38,16 @@ public final class AudioServiceProbe {
             RouteTrial.restore(withMode(audio, AudioManager.MODE_NORMAL), receiver, headphones);
         }
         RouteTrial.require(audio.input().isEmpty() && audio.output().isEmpty(), "preferences left after restore");
+    }
+
+    // NOTE: audio policy rejects devices that are not attached; emulators have no USB or LE Audio devices
+    private static RouteTrial.Device attached(int role, int type) throws Exception {
+        for (AudioDeviceInfo device : RouteService.devices()) {
+            if (device.getType() == type && (role == RouteTrial.ROLE_INPUT ? device.isSource() : device.isSink())) {
+                return new RouteTrial.Device(role, type, device.getAddress());
+            }
+        }
+        throw new IllegalStateException("emulator has no attached device of type " + type);
     }
 
     // NOTE: an emulator cannot start a real voice chat; the probe fakes only the mode check

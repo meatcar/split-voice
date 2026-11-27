@@ -18,7 +18,7 @@ public final class RouteService extends IRouteService.Stub {
         backend = new AudioServiceBackend();
     }
 
-    private AudioDeviceInfo[] devices() throws Exception {
+    static AudioDeviceInfo[] devices() throws Exception {
         return (AudioDeviceInfo[]) AudioManager.class.getMethod("getDevicesStatic", int.class)
                 .invoke(null, AudioManager.GET_DEVICES_ALL);
     }
