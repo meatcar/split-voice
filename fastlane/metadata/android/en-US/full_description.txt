@@ -1,12 +1,11 @@
-Talk through a wireless mic and listen through Bluetooth LE Audio headphones in any voice chat. Android does not let you choose this. Split Voice does it with Shizuku, started with wireless debugging. It does not need root.
+Talk through a plug-in mic and listen through your headphones in any voice chat. Android does not let you choose this. Split Voice does it with Shizuku, started with wireless debugging. It does not need root.
 
-Split it from the app or a Quick Settings tile, or let it split automatically whenever a voice chat starts.
+Plug in a mic and it just works: Split Voice uses your newest USB or wired mic with your newest headphones whenever a voice chat starts, and hands audio back to Android when it ends. Switch for one call from the app, the notification or a Quick Settings tile.
 
-How it works: Split Voice asks Android to prefer the mic receiver for voice chat input and the LE Audio headphones for voice chat output. It saves a recovery record first, checks every change, and never overrides another app's audio choices.
+Need more? Make profiles with ordered lists of mics and headphones, and pick a different one for each app. A missing device just falls back to the next one.
+
+How it works: Split Voice asks Android to prefer one mic and one output for voice chat. It saves a recovery record first, checks every change, and never overrides another app's audio choices.
 
 - No audio recording and no microphone permission
 - No internet permission, analytics or accounts
-- Clear setup steps and a restore reminder
-- Android 16 or later, a USB mic receiver and LE Audio headphones
-
-Split Voice changes Android's audio routing. Restore before you uninstall it.
+- Android 16 or 17, a plug-in mic and headphones

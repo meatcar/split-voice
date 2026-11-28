@@ -6,9 +6,11 @@ Run `nix develop -c ./check` before sending a change. For a focused test run:
 nix develop -c ./check testDebugUnitTest --tests '*RouteControllerTest'
 ```
 
-The Android app uses Java 17, native Views and a Shizuku UserService. Keep routing
-rules in `RouteTrial`, hidden API calls in `AudioServiceBackend`, and the Binder
-surface in `RouteService`. Tile, Activity and notification code must use the
+The Android app uses Java 17, native Views and a Shizuku UserService. Keep device
+choice in `Routing`, saved choices in `Settings`, the shell-side compare-and-set in
+`RouteTrial`, hidden API calls in `AudioServiceBackend`, and the Binder surface in
+`RouteService`. `RouteController` reconciles: it reads audio state, plans with
+`Routing`, journals, then routes. Tile, Activity and notification code must use the
 application-owned controller. Do not introduce a second journal or worker. Test
 safety changes before changing the implementation.
 
@@ -21,13 +23,13 @@ message or state, update `docs/reference.md`.
 
 | Layer | Runs | Covers |
 | --- | --- | --- |
-| Unit tests (`./check`) | Every push and PR | Routing rules with an in-memory backend, controller and tile with simulated Binder replies, every screen state with Robolectric on API 36 and 37 |
-| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 36 and 37, the two supported Android versions. It checks that the hidden calls exist, that a product strategy serves voice chat, and that a split of the emulator's built-in mic and speaker applies and restores. It also runs a smoke test of the screen. |
+| Unit tests (`./check`) | Every push and PR | Device choice and settings as plain JUnit; the real `RouteTrial` over an in-memory audio server behind a fake Binder for the controller, tile and notification; every screen state with Robolectric on API 36 and 37 |
+| Contract test (`Instrumented` workflow) | Weekly, on demand, and on PRs that touch routing | `AudioServiceContractTest` runs `AudioServiceProbe` as the shell user on emulators for API 36 and 37, the two supported Android versions. It checks that the hidden calls exist, that a product strategy serves voice chat, that the emulator's built-in mic and speaker route and clear, and that the shell sees which app records for voice chat. It also runs a smoke test of the screen. |
 | Hardware checklist | Before a release that touches routing | Below |
 
 `./check` enforces a line-coverage floor on everything except `RouteService` and
-`AudioServiceBackend`, which the contract test covers. `MainActivityTest` writes a
-screenshot of each screen state to `app/build/reports/ui/`, and CI uploads them with
+`AudioServiceBackend`, which the contract test covers. `MainActivityTest` and
+`AdvancedActivityTest` write a screenshot of each screen state to `app/build/reports/ui/`, and CI uploads them with
 the APK. Review them for any UI change. The test-only tile shadow fixes a missing
 `ShadowService` inheritance in Robolectric 4.14.1 so service destruction can be
 exercised.
@@ -38,17 +40,25 @@ changed the hidden API. Reproduce it with the same API level before changing
 
 ### Hardware checklist
 
-Use a phone with Shizuku, a USB mic receiver and LE Audio headphones. Connect over
-paired wireless debugging so USB stays free for the receiver.
+Use a phone with Shizuku, a USB mic and LE Audio headphones. Connect over paired
+wireless debugging so USB stays free for the mic.
 
 1. Run the [contract test on the phone](docs/how-to.md#check-a-phone-with-adb).
-2. Install the build. Start a voice chat. Tap **Split** in the app.
-3. Check mic input and headphone playback separately, including after opening
-   Quick Settings.
-4. End the voice chat, tap **Restore**, and confirm `dumpsys audio` lists no
-   preferred devices for capture preset 7 or the phone strategy.
-5. Repeat with the tile, and with **Split automatically**.
-6. Add the result to `docs/compatibility.md`.
+2. Install the build and start a voice chat. The card says **Split** and names both
+   devices. Check mic input and headphone playback separately.
+3. Unplug the mic during the call. The mic row says **Android's choice** and audio
+   keeps working. Plug it back in; Split Voice uses it again.
+4. Pick **Off**, then **Automatic**, from the notification and from the tile.
+5. Make a profile with the headphones' mic first, and pick it. The other side hears
+   the headphones.
+6. Set an override for the voice app. Start a new call; the card names the app and
+   the override.
+7. Hang up. The card says **Ready**, diagnostics show `Recovery pending: false`, and
+   `dumpsys audio` lists no preferred devices for capture preset 7 or the voice
+   strategy.
+8. Stop Shizuku during a call, hang up, start Shizuku and open the app. The card goes
+   from **Restore needed** to **Ready**.
+9. Add the result to `docs/compatibility.md`.
 
 User-facing text lives in `strings.xml`, so translations can be added. Messages built
 inside `RouteService` and `RouteTrial` run in Shizuku's shell process, which has no
@@ -56,20 +66,21 @@ app resources. They stay English until they carry message codes.
 
 Preserve these constraints:
 
-- Save the recovery record before sending any apply request.
-- Verify the exact device pair, not just preference counts.
-- Refuse pre-existing preferences. Require Voice stopped before restore.
+- Save the recovery record before sending any route request.
+- Set at most one preferred device per side, and only in communication mode.
+- Change a preference only when it is empty or one Split Voice set. Leave others'.
+- Read back every write. Treat a device Android did not keep as refused.
 - Keep recovery data through failure, process death and device loss.
-- Never claim service destruction restores preferences.
-- Do not add root, arbitrary shell commands, policy edits or automatic retries
-  of route writes.
+- Every missing input, such as a device, profile or app name, falls back to the
+  next choice and finally to Android's own. No state may need the user to fix it.
+- Do not add root, arbitrary shell commands or policy edits.
 
 ## Bug reports
 
 The issue templates ask for the output of **Copy diagnostics**. It covers the app
 version, phone model, Android/One UI version, Shizuku status and exact app message.
-Also include the receiver and headphone models, whether Voice was active, and
-separate microphone and playback observations. Say whether Restore succeeded.
+Also include the mic and headphone models, the voice app, and separate microphone
+and playback observations.
 
 Redact device identifiers and personal content from logs and screenshots.
 
@@ -118,8 +129,8 @@ releases page is the changelog.
 `fastlane/metadata/android/` holds the store listing in the layout F-Droid and
 the Play Store read. Submitting the app to either store is a manual step.
 
-Development builds and release APKs have different signing keys. Restore any
-active routing, then uninstall the development build before installing a release.
+Development builds and release APKs have different signing keys. End any voice
+chat, then uninstall the development build before installing a release.
 
 ## Agent environments
 
