@@ -1,16 +1,38 @@
 <resources>
     <string name="app_name">Split Voice</string>
-    <string name="tagline">Wireless mic in. LE Audio headphones out.</string>
+    <string name="tagline">Your mic in. Your headphones out. For every voice chat.</string>
 
     <string name="title_setup">Finish setup</string>
     <string name="title_working">Working…</string>
-    <string name="title_ready">Ready to split</string>
-    <string name="title_active">Split is on</string>
     <string name="title_recovery">Restore needed</string>
-    <string name="title_blocked">Not ready</string>
+    <string name="title_error">Can\'t check audio</string>
+    <string name="title_ready">Ready</string>
+    <string name="title_off">Off</string>
+    <string name="title_split">Split</string>
+    <string name="title_not_split">Not split</string>
+    <string name="ready_detail">Split Voice steps in when a voice chat starts.</string>
+    <string name="off_detail">Off for all apps. Change it in Advanced.</string>
+    <string name="call_detail">%1$s · %2$s</string>
+    <string name="call_detail_picked">%1$s · this call</string>
+    <string name="unknown_app">Unknown app</string>
+    <string name="for_this_call">For this call</string>
+    <string name="route_mic">Mic</string>
+    <string name="route_headphones">Headphones</string>
+    <string name="android_choice">Android\'s choice</string>
+    <string name="why_foreign">Chosen by another app. Split Voice leaves it alone.</string>
+    <string name="why_no_external_mic">No USB or wired mic connected</string>
+    <string name="why_no_headphones">No headphones connected</string>
+    <string name="why_no_profile_mic">None of this profile\'s mics are connected</string>
+    <string name="why_no_profile_headphones">None of this profile\'s headphones are connected</string>
+    <string name="why_refused">Android refused %1$s</string>
+    <string name="choice_auto">Automatic</string>
+    <string name="choice_off">Off</string>
+    <string name="phone_mic">Phone mic</string>
+    <string name="phone_speaker">Phone speaker</string>
+    <string name="phone_earpiece">Phone earpiece</string>
 
     <string name="start_shizuku">Start Shizuku to continue.</string>
-    <string name="start_shizuku_restore">Start Shizuku, then tap Restore.</string>
+    <string name="start_shizuku_restore">Start Shizuku. Split Voice then restores normal audio by itself.</string>
     <string name="allow_shizuku">Tap Connect, then allow Split Voice in Shizuku.</string>
     <string name="not_root">Shizuku is running as root. Restart it with wireless debugging.</string>
     <string name="connecting">Connecting to Shizuku…</string>
@@ -18,27 +40,10 @@
     <string name="permission_denied">Shizuku access denied. Tap Connect to ask again.</string>
     <string name="cannot_connect">Cannot connect to Shizuku (%1$s).</string>
     <string name="connection_failed">Lost the connection to Shizuku. Start it again.</string>
-    <string name="reconnect">Reconnect Shizuku.</string>
-    <string name="reconnect_restore">Reconnect Shizuku, then tap Restore.</string>
-    <string name="applying">Splitting audio…</string>
-    <string name="restoring">Restoring normal audio…</string>
-    <string name="record_not_cleared">Normal audio restored, but the recovery record was not cleared.</string>
-    <string name="existing_preferences">Another app already chose audio devices. Nothing changed.</string>
-    <string name="connect_exactly_one">Connect one mic receiver and one pair of LE Audio headphones. Nothing changed.</string>
-    <string name="start_voice">Start a voice chat first. Nothing changed.</string>
-    <string name="sco_active">Your headphones\' own mic is in use. Nothing changed.</string>
-    <string name="identities_unavailable">Cannot identify your devices. Nothing changed.</string>
-    <string name="cannot_save_recovery">Cannot save the recovery record. Nothing changed.</string>
+    <string name="cannot_save_recovery">Cannot save the recovery record, so nothing changed.</string>
     <string name="no_result">Shizuku gave no answer. Audio state unknown.</string>
     <string name="check_failed">Cannot read audio routing.</string>
-    <string name="stop_voice">End the voice chat, then tap Restore.</string>
-    <string name="other_app_preferences">Another app chose audio devices. Split Voice will not override it.</string>
-    <string name="connect_one">Connect one mic receiver and one pair of LE Audio headphones.</string>
-    <string name="bluetooth_mic">Your headphones\' own mic is in use. Connect the mic receiver, then restart the voice chat.</string>
-    <string name="start_voice_tap_tile">Start a voice chat, then tap Split.</string>
 
-    <string name="split">Split</string>
-    <string name="restore">Restore</string>
 
     <string name="setup_install">Install Shizuku</string>
     <string name="setup_install_body">Shizuku lets Split Voice change audio routing without root.</string>
@@ -51,23 +56,25 @@
     <string name="step_done">Done</string>
     <string name="step_todo">To do</string>
 
-    <string name="need_receiver">Mic receiver</string>
-    <string name="need_headphones">LE Audio headphones</string>
-    <string name="need_voice_chat">Voice chat</string>
-    <string name="device_found">Connected</string>
-    <string name="device_missing">Not connected</string>
-    <string name="device_extra">%1$d connected</string>
-    <string name="voice_chat_on">In progress</string>
-    <string name="voice_chat_off">Not started</string>
 
     <string name="options">Options</string>
-    <string name="auto_route">Split automatically</string>
-    <string name="auto_route_summary">Split when a voice chat starts. Restore when it ends.</string>
-    <string name="auto_route_paused">Paused until Split Voice connects to Shizuku.</string>
-    <string name="notifications">Restore reminder</string>
-    <string name="notifications_summary">Show a notification until normal audio is restored.</string>
+    <string name="notifications">Notifications</string>
+    <string name="notifications_summary">Switch devices during a call without opening the app.</string>
+    <string name="notifications_allowed">On. Shows what Split Voice is doing.</string>
+    <string name="allow">Allow</string>
+    <string name="advanced">Advanced</string>
+    <string name="advanced_summary">Profiles and app overrides</string>
+    <string name="advanced_counts">All apps: %1$s · %2$s · %3$s</string>
+    <plurals name="profiles">
+        <item quantity="one">%d profile</item>
+        <item quantity="other">%d profiles</item>
+    </plurals>
+    <plurals name="overrides">
+        <item quantity="one">%d override</item>
+        <item quantity="other">%d overrides</item>
+    </plurals>
     <string name="tile">Quick Settings tile</string>
-    <string name="tile_summary">Split and restore without leaving your voice chat.</string>
+    <string name="tile_summary">Switch or turn off Split Voice during a call.</string>
     <string name="tile_summary_added">Added. Swipe down twice to find Split Voice.</string>
     <string name="add_tile">Add</string>
     <string name="tile_added">Tile added.</string>
@@ -86,19 +93,52 @@
     <string name="no_browser">No app can open this link.</string>
 
     <string name="tile_state_setup">Set up</string>
-    <string name="tile_state_working">Working…</string>
-    <string name="tile_state_off">Off</string>
-    <string name="tile_state_on">On</string>
-    <string name="tile_state_restore">Restore needed</string>
     <string name="tile_state_blocked">Not ready</string>
 
-    <string name="notification_channel">Restore reminder</string>
-    <string name="notification_title">Restore normal audio</string>
-    <string name="notification_body">End the voice chat, then open Split Voice and tap Restore.</string>
-    <string name="controls">Open Split Voice</string>
-    <string name="automatic_channel">Automatic split</string>
-    <string name="automatic_title">Automatic split is on</string>
-    <string name="automatic_body">Splits when a voice chat starts. Restores when it ends.</string>
+    <string name="automatic_channel">Status and call controls</string>
+
+    <string name="all_apps">All apps</string>
+    <string name="auto_summary">The newest USB or wired mic, with the newest headphones. Without such a mic, Android chooses.</string>
+    <string name="off_summary">Android chooses, as if Split Voice were not installed.</string>
+    <string name="profiles">Profiles</string>
+    <string name="profiles_hint">A profile is an ordered list of mics and headphones. Use one when Automatic doesn\'t pick what you want.</string>
+    <string name="new_profile">New profile</string>
+    <string name="profile_in">Mic: %1$s.</string>
+    <string name="profile_out">Headphones: %1$s.</string>
+    <string name="then">", then "</string>
+    <string name="profile_empty">No devices yet</string>
+    <string name="profile_name_hint">Name, such as Walking</string>
+    <string name="profile_default_name">Profile %1$d</string>
+    <string name="create">Create</string>
+    <string name="app_overrides">App overrides</string>
+    <string name="app_overrides_hint">Apps you used for voice chat show up here. Other apps use the All apps setting.</string>
+    <string name="uses_all_apps">Uses All apps setting</string>
+    <string name="add_app">Add app</string>
+    <string name="profile_name">Name</string>
+    <string name="rename">Rename profile</string>
+    <string name="save">Save</string>
+    <string name="mics">Mics</string>
+    <string name="mics_hint">Split Voice uses the first one that is connected.</string>
+    <string name="headphones">Headphones</string>
+    <string name="headphones_hint">Split Voice uses the first one that is connected.</string>
+    <string name="add_mic">Add mic</string>
+    <string name="add_headphones">Add headphones</string>
+    <string name="connected">Connected</string>
+    <string name="not_connected">Not connected</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="remove">Remove</string>
+    <string name="move_up_device">Move %1$s up</string>
+    <string name="move_down_device">Move %1$s down</string>
+    <string name="remove_device">Remove %1$s</string>
+    <string name="back">Back</string>
+    <string name="connect_to_add">Connect Split Voice to Shizuku first. It lists devices through Shizuku.</string>
+    <string name="no_mics_to_add">No other mics are connected. Connect one, then add it.</string>
+    <string name="no_headphones_to_add">No other headphones are connected. Connect them, then add them.</string>
+    <string name="delete_profile">Delete profile</string>
+    <string name="delete_title">Delete %1$s?</string>
+    <string name="delete_body">Apps that use it go back to the All apps setting.</string>
+    <string name="delete">Delete</string>
 
     <string name="url_shizuku_download" translatable="false">https://shizuku.rikka.app/download/</string>
     <string name="url_how_it_works" translatable="false">https://github.com/meatcar/split-voice/blob/main/docs/explanation.md</string>

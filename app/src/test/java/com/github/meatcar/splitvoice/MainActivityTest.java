@@ -5,17 +5,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ResolveInfo;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.AdaptiveIconDrawable;
+import android.media.AudioManager;
 import android.util.TypedValue;
-import android.os.Bundle;
-import android.os.Looper;
 import android.Manifest;
 import android.view.View;
-import android.widget.CompoundButton;
-import android.widget.ScrollView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import org.junit.Test;
@@ -26,12 +23,11 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
-import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.util.List;
 
+import static com.github.meatcar.splitvoice.RoutingTest.*;
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -45,8 +41,8 @@ public class MainActivityTest {
             assertEquals("Finish setup", text(activity, R.id.status_title));
             assertEquals("Start Shizuku to continue.", text(activity, R.id.status));
             assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
-            assertEquals(View.GONE, activity.findViewById(R.id.checks).getVisibility());
-            assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
+            assertEquals(View.GONE, activity.findViewById(R.id.routes).getVisibility());
+            assertEquals(View.GONE, activity.findViewById(R.id.chips_scroll).getVisibility());
             assertEquals(View.VISIBLE, actions(activity, R.id.step_install).getVisibility());
             assertEquals(View.GONE, actions(activity, R.id.step_start).getVisibility());
             assertEquals(View.GONE, actions(activity, R.id.step_connect).getVisibility());
@@ -73,111 +69,113 @@ public class MainActivityTest {
         }
     }
 
-    @Test public void recoverySurvivesRecreationAndNeverClaimsActiveFromJournal() throws Exception {
+    @Test public void recoverySurvivesRecreationAndExplainsHowToFinishIt() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         assertTrue(context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE)
-                .edit().putBoolean("pending", true).putString("receiver", "test receiver")
-                .putString("earbuds", "test earbuds").commit());
+                .edit().putString("input", "[{\"input\":true,\"type\":11,\"address\":\"card=1\",\"name\":\"\"}]").commit());
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             controller.recreate();
             MainActivity activity = controller.get();
             assertEquals("Restore needed", text(activity, R.id.status_title));
-            assertEquals("Start Shizuku, then tap Restore.", text(activity, R.id.status));
+            assertEquals("Start Shizuku. Split Voice then restores normal audio by itself.", text(activity, R.id.status));
             assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
-            assertEquals("Restore", text(activity, R.id.primary));
-            assertFalse(activity.findViewById(R.id.primary).isEnabled());
             capture(activity, "recovery");
         }
     }
 
-    @Test public void connectedScreenShowsWhatIsReadyAndOneAction() throws Exception {
-        for (boolean active : new boolean[]{false, true}) {
-            var journal = RuntimeEnvironment.getApplication().getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
-            assertTrue(journal.edit().putBoolean("pending", active).commit());
-            Bundle inspection = inspection(new int[]{11, 15}, new int[]{2, 26}, 3);
-            inspection.putBoolean("empty", !active);
-            inspection.putBoolean("matches", active);
-            inspection.putBoolean("devicesReady", true);
-            try (var controller = launchConnected(inspection)) {
-                MainActivity activity = controller.get();
-                assertEquals(active ? "Split is on" : "Ready to split", text(activity, R.id.status_title));
-                assertEquals(View.GONE, activity.findViewById(R.id.setup).getVisibility());
-                assertEquals(View.VISIBLE, activity.findViewById(R.id.checks).getVisibility());
-                assertEquals("Connected", check(activity, R.id.check_receiver));
-                assertEquals("Connected", check(activity, R.id.check_headphones));
-                assertEquals("In progress", check(activity, R.id.check_voice_chat));
-                assertEquals(active ? "Restore" : "Split", text(activity, R.id.primary));
-                assertTrue(activity.findViewById(R.id.primary).isEnabled());
-                capture(activity, active ? "active" : "ready");
-            }
+    @Test public void readyScreenNeedsNothingFromTheUser() throws Exception {
+        try (var controller = launchConnected(new FakeRouteService(PHONE_MIC, SPEAKER, JABRA, DJI))) {
+            MainActivity activity = controller.get();
+            assertEquals("Ready", text(activity, R.id.status_title));
+            assertEquals("Split Voice steps in when a voice chat starts.", text(activity, R.id.status));
+            assertEquals(View.GONE, activity.findViewById(R.id.setup).getVisibility());
+            assertEquals(View.GONE, activity.findViewById(R.id.routes).getVisibility());
+            assertTrue(text(activity, R.id.advanced).contains("Profiles and app overrides"));
+            capture(activity, "ready");
         }
     }
 
-    @Test public void blockedScreenNamesTheMissingAndExtraDevices() throws Exception {
-        Bundle inspection = inspection(new int[]{15}, new int[]{2, 26, 26}, 0);
-        inspection.putBoolean("empty", true);
-        try (var controller = launchConnected(inspection)) {
+    @Test public void callScreenShowsEachRouteAndSwitchesForThisCall() throws Exception {
+        FakeRouteService remote = new FakeRouteService(PHONE_MIC, SPEAKER, JABRA_MIC, JABRA, DJI);
+        remote.audio.mode = AudioManager.MODE_IN_COMMUNICATION;
+        remote.audio.app = "com.discord";
+        try (var controller = launchConnected(remote)) {
             MainActivity activity = controller.get();
-            assertEquals("Not ready", text(activity, R.id.status_title));
-            assertEquals("Connect one mic receiver and one pair of LE Audio headphones.", text(activity, R.id.status));
-            assertEquals("Not connected", check(activity, R.id.check_receiver));
-            assertEquals("2 connected", check(activity, R.id.check_headphones));
-            assertEquals("Not started", check(activity, R.id.check_voice_chat));
-            assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
-            capture(activity, "blocked");
+            assertEquals("Split", text(activity, R.id.status_title));
+            assertEquals("com.discord · Automatic", text(activity, R.id.status));
+            assertEquals("DJI Mic", route(activity, R.id.route_mic, R.id.route_device));
+            assertEquals("Jabra Elite 10", route(activity, R.id.route_headphones, R.id.route_device));
+            RadioGroup chips = activity.findViewById(R.id.chips);
+            assertEquals(2, chips.getChildCount());
+            assertTrue(((RadioButton) chips.getChildAt(0)).isChecked());
+            capture(activity, "call-split");
+
+            chips.getChildAt(1).performClick();
+            FakeRouteService.awaitIdle(routes());
+            assertEquals("Off", text(activity, R.id.status_title));
+            assertEquals("com.discord · Off · this call", text(activity, R.id.status));
+            assertTrue(((RadioButton) chips.getChildAt(1)).isChecked());
+            assertTrue(remote.audio.input.isEmpty());
         }
     }
 
-    @Test public void splitButtonAppliesThroughTheController() throws Exception {
-        var app = (SplitVoiceApplication) RuntimeEnvironment.getApplication();
-        FakeRouteService remote = new FakeRouteService(app.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE));
-        ReflectionHelpers.setField(app.routes(), "service", remote);
-        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
-            FakeRouteService.awaitIdle(app.routes());
+    @Test public void callWithoutAnExternalMicSaysWhatIsMissing() throws Exception {
+        Settings settings = new Settings(RuntimeEnvironment.getApplication());
+        Profile walking = settings.create("Walking");
+        settings.save(walking.withSide(true, List.of(RoutingTest.saved(JABRA_MIC))));
+        FakeRouteService remote = new FakeRouteService(PHONE_MIC, SPEAKER, JABRA_MIC, JABRA);
+        remote.audio.mode = AudioManager.MODE_IN_COMMUNICATION;
+        remote.audio.app = "com.discord";
+        try (var controller = launchConnected(remote)) {
             MainActivity activity = controller.get();
-            assertEquals("Split", text(activity, R.id.primary));
-            activity.findViewById(R.id.primary).performClick();
-            FakeRouteService.awaitIdle(app.routes());
-            assertEquals(1, remote.applyCalls);
-            assertEquals("Split is on", text(activity, R.id.status_title));
-            assertEquals("Restore", text(activity, R.id.primary));
+            assertEquals("Not split", text(activity, R.id.status_title));
+            assertEquals("No USB or wired mic connected", route(activity, R.id.route_mic, R.id.route_why));
+            assertEquals(View.GONE, activity.findViewById(R.id.route_headphones).findViewById(R.id.route_why).getVisibility());
+            assertEquals(3, ((RadioGroup) activity.findViewById(R.id.chips)).getChildCount());
+            capture(activity, "call-fallback");
         }
     }
 
     @Test public void diagnosticsDescribeTheSetupWithoutDeviceIdentifiers() throws Exception {
-        RouteController routes = ((SplitVoiceApplication) RuntimeEnvironment.getApplication()).routes();
-        Bundle inspection = new Bundle();
-        inspection.putInt("mode", 3);
-        inspection.putBoolean("empty", true);
-        inspection.putBoolean("devicesReady", true);
-        inspection.putString("receiver", "AA:BB:CC:DD:EE:FF");
-        inspection.putString("earbuds", "11:22:33:44:55:66");
-        inspection.putIntArray("inputTypes", new int[]{3, 11, 15});
-        inspection.putIntArray("outputTypes", new int[]{2, 26, 99});
-        ReflectionHelpers.setField(routes, "inspection", inspection);
-        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+        FakeRouteService remote = new FakeRouteService(PHONE_MIC, SPEAKER, JABRA, DJI,
+                new Device(60, false, 99, "AA:BB:CC", "Secret"));
+        remote.audio.mode = AudioManager.MODE_IN_COMMUNICATION;
+        remote.audio.app = "com.discord";
+        try (var controller = launchConnected(remote)) {
             controller.get().findViewById(R.id.diagnostics).performClick();
             ClipboardManager clipboard = RuntimeEnvironment.getApplication().getSystemService(ClipboardManager.class);
             String report = clipboard.getPrimaryClip().getItemAt(0).getText().toString();
             assertTrue(report, report.contains("Android: "));
-            assertTrue(report, report.contains("Shizuku: not running"));
-            assertTrue(report, report.contains("Input types: wired headset, USB device, built-in mic"));
-            assertTrue(report, report.contains("Output types: built-in speaker, LE headset, type 99"));
-            assertTrue(report, report.contains("Audio mode: 3"));
-            assertFalse(report, report.contains("AA:BB"));
-            assertFalse(report, report.contains("11:22"));
+            assertTrue(report, report.contains("Voice app: detected"));
+            assertTrue(report, report.contains("Using: Automatic"));
+            assertTrue(report, report.contains("Mic: set to USB device"));
+            assertTrue(report, report.contains("Inputs: built-in mic, USB device"));
+            assertTrue(report, report.contains("Outputs: built-in speaker, LE headset, type 99"));
+            for (String secret : new String[]{"AA:BB", "11:22", "card=", "Jabra", "DJI", "Secret", "com.discord"}) {
+                assertFalse(report, report.contains(secret));
+            }
         }
     }
 
-    @Test public void asksForNotificationPermissionBeforeEnablingReminder() {
+    @Test public void allowNotificationsAsksForThePermission() {
         try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            CompoundButton notifications = activity.findViewById(R.id.notifications);
-            notifications.performClick();
-            assertFalse(notifications.isChecked());
-            assertFalse(RecoveryNotification.enabled(activity));
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.allow_notifications).getVisibility());
+            activity.findViewById(R.id.allow_notifications).performClick();
             assertEquals(Manifest.permission.POST_NOTIFICATIONS,
                     shadowOf(activity).getLastRequestedPermission().requestedPermissions[0]);
+        }
+        shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            assertEquals(View.GONE, controller.get().findViewById(R.id.allow_notifications).getVisibility());
+        }
+    }
+
+    @Test public void advancedRowOpensAdvanced() {
+        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            controller.get().findViewById(R.id.advanced).performClick();
+            assertEquals(AdvancedActivity.class.getName(),
+                    shadowOf(controller.get()).getNextStartedActivity().getComponent().getClassName());
         }
     }
 
@@ -195,22 +193,6 @@ public class MainActivityTest {
         var icon = app.getDrawable(R.mipmap.ic_launcher);
         assertTrue(icon instanceof AdaptiveIconDrawable);
         assertNotNull(((AdaptiveIconDrawable) icon).getMonochrome());
-    }
-
-    @Test public void automaticSplitSwitchPersistsAndControlsTheService() {
-        var app = shadowOf(RuntimeEnvironment.getApplication());
-        try (var controller = Robolectric.buildActivity(MainActivity.class).setup()) {
-            while (app.getNextStartedService() != null || app.getNextStoppedService() != null) { /* drain launch sync */ }
-            CompoundButton automatic = controller.get().findViewById(R.id.auto_route);
-            assertFalse(automatic.isChecked());
-            automatic.performClick();
-            assertTrue(AutoRoute.enabled(controller.get()));
-            assertTrue(automatic.getText().toString().contains("Paused until Split Voice connects to Shizuku."));
-            assertEquals(AutoRouteService.class.getName(), app.getNextStartedService().getComponent().getClassName());
-            automatic.performClick();
-            assertFalse(AutoRoute.enabled(controller.get()));
-            assertEquals(AutoRouteService.class.getName(), app.getNextStoppedService().getComponent().getClassName());
-        }
     }
 
     private static void assertReadableTheme(boolean dark) throws Exception {
@@ -234,26 +216,19 @@ public class MainActivityTest {
         }
     }
 
-    private static ActivityController<MainActivity> launchConnected(Bundle inspection) throws Exception {
-        RouteController routes = ((SplitVoiceApplication) RuntimeEnvironment.getApplication()).routes();
-        inspection.putBoolean("ok", true);
-        ReflectionHelpers.setField(routes, "service", new IRouteService.Stub() {
-            @Override public Bundle inspect(String receiver, String earbuds) { return inspection; }
-            @Override public Bundle apply(String receiver, String earbuds) { throw new AssertionError("launch must not apply"); }
-            @Override public Bundle restore(String receiver, String earbuds) { throw new AssertionError("launch must not restore"); }
-            @Override public void destroy() { throw new AssertionError("launch must not destroy the service"); }
-        });
+    private static RouteController routes() {
+        return ((SplitVoiceApplication) RuntimeEnvironment.getApplication()).routes();
+    }
+
+    private static ActivityController<MainActivity> launchConnected(FakeRouteService remote) throws Exception {
+        ReflectionHelpers.setField(routes(), "service", remote);
         var controller = Robolectric.buildActivity(MainActivity.class).setup();
-        FakeRouteService.awaitIdle(routes);
+        FakeRouteService.awaitIdle(routes());
         return controller;
     }
 
-    private static Bundle inspection(int[] inputTypes, int[] outputTypes, int mode) {
-        Bundle inspection = new Bundle();
-        inspection.putIntArray("inputTypes", inputTypes);
-        inspection.putIntArray("outputTypes", outputTypes);
-        inspection.putInt("mode", mode);
-        return inspection;
+    private static String route(MainActivity activity, int row, int field) {
+        return ((TextView) activity.findViewById(row).findViewById(field)).getText().toString();
     }
 
     private static ResolveInfo resolveInfo(String packageName) {
@@ -268,34 +243,9 @@ public class MainActivityTest {
         return ((TextView) activity.findViewById(id)).getText().toString();
     }
 
-    private static String check(MainActivity activity, int row) {
-        return ((TextView) activity.findViewById(row).findViewById(R.id.check_value)).getText().toString();
-    }
-
     private static View actions(MainActivity activity, int step) {
         return activity.findViewById(step).findViewById(R.id.step_action);
     }
 
-    /** Renders the whole scrolling screen with its 16dp gutter, so CI artifacts show every state. */
-    private static void capture(MainActivity activity, String name) throws Exception {
-        View root = activity.findViewById(R.id.content);
-        int width = 360;
-        int gutter = 16;
-        root.measure(View.MeasureSpec.makeMeasureSpec(width - 2 * gutter, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
-        Bitmap bitmap = Bitmap.createBitmap(width, root.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        var background = new TypedValue();
-        activity.getTheme().resolveAttribute(android.R.attr.colorBackground, background, true);
-        canvas.drawColor(background.data);
-        canvas.translate(gutter, 0);
-        root.draw(canvas);
-        File directory = new File("build/reports/ui");
-        assertTrue(directory.isDirectory() || directory.mkdirs());
-        try (FileOutputStream output = new FileOutputStream(new File(directory, name + ".png"))) {
-            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output));
-        }
-        bitmap.recycle();
-    }
+    private static void capture(MainActivity activity, String name) throws Exception { Screens.capture(activity, name); }
 }

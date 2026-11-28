@@ -8,7 +8,6 @@ public final class SplitVoiceApplication extends Application {
     @Override public void onCreate() {
         super.onCreate();
         routes = new RouteController(this);
-        routes.observe(() -> RecoveryNotification.update(this, routes));
     }
 
     RouteController routes() { return routes; }

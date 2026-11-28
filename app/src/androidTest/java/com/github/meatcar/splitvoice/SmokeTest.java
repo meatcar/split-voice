@@ -25,7 +25,7 @@ public class SmokeTest {
             scenario.onActivity(activity -> {
                 assertEquals("Finish setup", ((TextView) activity.findViewById(R.id.status_title)).getText().toString());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.setup).getVisibility());
-                assertEquals(View.GONE, activity.findViewById(R.id.primary).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.routes).getVisibility());
             });
         }
     }

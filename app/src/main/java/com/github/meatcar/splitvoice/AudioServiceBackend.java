@@ -1,6 +1,10 @@
 package com.github.meatcar.splitvoice;
 
 import android.media.AudioAttributes;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.media.AudioRecordingConfiguration;
+import android.media.MediaRecorder;
 import android.os.IBinder;
 
 import java.lang.reflect.InvocationTargetException;
@@ -9,7 +13,9 @@ import java.util.List;
 
 // NOTE: hidden IAudioService API; AudioServiceContractTest checks it on each emulator in the Instrumented workflow
 final class AudioServiceBackend implements RouteTrial.Backend {
-    private static final int CAPTURE_PRESET_VOICE_COMMUNICATION = 7;
+    private static final int CAPTURE_PRESET_VOICE_COMMUNICATION = MediaRecorder.AudioSource.VOICE_COMMUNICATION;
+    private static final int ROLE_INPUT = 1;
+    private static final int ROLE_OUTPUT = 2;
     private static final Class<?>[] TARGET = {int.class};
     private static final Class<?>[] TARGET_DEVICES = {int.class, List.class};
 
@@ -49,10 +55,26 @@ final class AudioServiceBackend implements RouteTrial.Backend {
 
     @Override public int mode() throws Exception { return (Integer) call("getMode", new Class<?>[0]); }
     @Override public boolean sco() throws Exception { return (Boolean) call("isBluetoothScoOn", new Class<?>[0]); }
-    @Override public List<RouteTrial.Device> input() throws Exception { return preferences(true); }
-    @Override public List<RouteTrial.Device> output() throws Exception { return preferences(false); }
-    @Override public void input(List<RouteTrial.Device> devices) throws Exception { set(true, devices); }
-    @Override public void output(List<RouteTrial.Device> devices) throws Exception { set(false, devices); }
+
+    @Override public List<Device> devices() throws Exception {
+        List<Device> result = new ArrayList<>();
+        for (AudioDeviceInfo device : (AudioDeviceInfo[]) AudioManager.class.getMethod("getDevicesStatic", int.class)
+                .invoke(null, AudioManager.GET_DEVICES_ALL)) result.add(Device.of(device));
+        return result;
+    }
+
+    // NOTE: hidden getter; callers without MODIFY_AUDIO_ROUTING get empty names
+    @Override public String voiceApp() throws Exception {
+        String any = null;
+        for (Object config : (List<?>) call("getActiveRecordingConfigurations", new Class<?>[0])) {
+            AudioRecordingConfiguration recording = (AudioRecordingConfiguration) config;
+            String app = (String) AudioRecordingConfiguration.class.getMethod("getClientPackageName").invoke(recording);
+            if (app == null || app.isEmpty()) continue;
+            if (recording.getClientAudioSource() == MediaRecorder.AudioSource.VOICE_COMMUNICATION) return app;
+            if (any == null) any = app;
+        }
+        return any;
+    }
 
     private Object call(String method, Class<?>[] types, Object... args) throws Exception {
         try {
@@ -64,35 +86,32 @@ final class AudioServiceBackend implements RouteTrial.Backend {
 
     private int target(boolean input) { return input ? CAPTURE_PRESET_VOICE_COMMUNICATION : voiceStrategy; }
 
-    private List<RouteTrial.Device> preferences(boolean input) throws Exception {
+    @Override public List<Device> preferences(boolean input) throws Exception {
         List<?> raw = (List<?>) call(input ? "getPreferredDevicesForCapturePreset" : "getPreferredDevicesForStrategy",
                 TARGET, target(input));
-        List<RouteTrial.Device> result = new ArrayList<>();
+        List<Device> result = new ArrayList<>();
         for (Object device : raw) {
             Class<?> cls = device.getClass();
-            result.add(new RouteTrial.Device((Integer) cls.getMethod("getRole").invoke(device),
+            result.add(new Device(0, (Integer) cls.getMethod("getRole").invoke(device) == ROLE_INPUT,
                     (Integer) cls.getMethod("getType").invoke(device),
-                    (String) cls.getMethod("getAddress").invoke(device)));
+                    (String) cls.getMethod("getAddress").invoke(device), ""));
         }
         return result;
     }
 
-    private void set(boolean input, List<RouteTrial.Device> devices) throws Exception {
-        if (devices.isEmpty() && preferences(input).isEmpty()) return;
+    @Override public void prefer(boolean input, Device device) throws Exception {
         String method;
         int result;
-        if (devices.isEmpty()) {
+        if (device == null) {
+            if (preferences(input).isEmpty()) return;
             method = input ? "clearPreferredDevicesForCapturePreset" : "removePreferredDevicesForStrategy";
             result = (Integer) call(method, TARGET, target(input));
         } else {
-            List<Object> attributes = new ArrayList<>();
-            for (RouteTrial.Device device : devices) {
-                attributes.add(Class.forName("android.media.AudioDeviceAttributes")
-                        .getConstructor(int.class, int.class, String.class)
-                        .newInstance(device.role(), device.type(), device.address()));
-            }
+            Object attributes = Class.forName("android.media.AudioDeviceAttributes")
+                    .getConstructor(int.class, int.class, String.class)
+                    .newInstance(input ? ROLE_INPUT : ROLE_OUTPUT, device.type(), device.address());
             method = input ? "setPreferredDevicesForCapturePreset" : "setPreferredDevicesForStrategy";
-            result = (Integer) call(method, TARGET_DEVICES, target(input), attributes);
+            result = (Integer) call(method, TARGET_DEVICES, target(input), List.of(attributes));
         }
         RouteTrial.require(result == 0, method + " returned " + result);
     }
