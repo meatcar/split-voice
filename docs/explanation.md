@@ -36,7 +36,7 @@ The receiver must appear as a USB audio input, which covers most plug-in receive
 Changing system-wide routing from outside Android's settings is risky: a mistake would leave every call on the wrong device, with no menu to undo it. Split Voice is built so that you can always undo the split.
 
 - **Save first.** Before it changes anything, it saves a recovery record with the two devices it will use. If the app crashes, the phone restarts or Shizuku stops, the record stays, and the app shows **Restore needed**.
-- **Check before changing.** It splits only when exactly one receiver and one LE Audio headphone are connected, a voice chat is running, the headphone mic is off, and no other app has set preferences.
+- **Check before changing.** It splits only when exactly one receiver and one LE Audio headphone are connected, a voice chat is running, and the headphone mic is off.
 - **Read back.** After each change, it reads the preferences back and fails if Android did not keep them.
 - **Do not override.** If another app has set preferences, before or after the split, Split Voice stops and tells you. It does not overwrite them.
 - **Restore when idle.** Restore runs only when no voice chat is active, so it does not move a live call.
