@@ -15,7 +15,7 @@ trap 'rm -rf "$temporary"' EXIT
 printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$temporary/release.p12"
 unset RELEASE_KEYSTORE_BASE64
 
-tools="$ANDROID_HOME/build-tools/35.0.0"
+tools="$ANDROID_HOME/build-tools/36.0.0"
 apk="split-voice-$RELEASE_TAG.apk"
 "$tools/apksigner" sign --ks "$temporary/release.p12" \
   --ks-key-alias split-voice --ks-pass env:RELEASE_KEYSTORE_PASSWORD \
