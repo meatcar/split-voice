@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - app/src/androidTest/**
+      - app/src/debug/**
       - app/src/main/java/com/github/meatcar/splitvoice/AudioServiceBackend.java
+      - app/src/main/java/com/github/meatcar/splitvoice/Device.java
       - app/src/main/java/com/github/meatcar/splitvoice/RouteService.java
       - app/src/main/java/com/github/meatcar/splitvoice/RouteTrial.java
       - .github/workflows/instrumented.yml
@@ -49,6 +51,8 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
+          # NOTE: default options add -noaudio; the voice app test needs a working mic
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
           script: nix develop -c ./check connectedDebugAndroidTest
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

@@ -25,12 +25,17 @@
             <TextView android:id="@+id/status" style="@style/Text.Body" android:layout_marginTop="4dp"
                 android:accessibilityLiveRegion="polite" />
 
-            <LinearLayout android:id="@+id/checks" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical">
-                <include android:id="@+id/check_receiver" layout="@layout/check_row" />
-                <include android:id="@+id/check_headphones" layout="@layout/check_row" />
-                <include android:id="@+id/check_voice_chat" layout="@layout/check_row" />
+            <LinearLayout android:id="@+id/routes" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="vertical">
+                <include android:id="@+id/route_mic" layout="@layout/route_row" />
+                <include android:id="@+id/route_headphones" layout="@layout/route_row" />
             </LinearLayout>
+            <HorizontalScrollView android:id="@+id/chips_scroll" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="12dp" android:scrollbars="none">
+                <RadioGroup android:id="@+id/chips" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:contentDescription="@string/for_this_call" />
+            </HorizontalScrollView>
 
             <LinearLayout android:id="@+id/setup" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="vertical">
@@ -39,14 +44,17 @@
                 <include android:id="@+id/step_connect" layout="@layout/step" />
             </LinearLayout>
 
-            <Button android:id="@+id/primary" style="@style/Button.Filled" android:layout_width="match_parent"
-                android:layout_marginTop="20dp" android:minHeight="56dp" android:textSize="16sp" />
         </LinearLayout>
 
         <TextView style="@style/Text.Section" android:text="@string/options" />
         <LinearLayout style="@style/Card">
-            <Switch android:id="@+id/auto_route" style="@style/Row" />
-            <Switch android:id="@+id/notifications" style="@style/Row" />
+            <LinearLayout style="@style/Row" android:orientation="horizontal" android:screenReaderFocusable="true">
+                <TextView android:id="@+id/notifications_text" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1" android:textSize="16sp"
+                    android:textColor="@color/on_surface" android:lineSpacingExtra="2sp" />
+                <Button android:id="@+id/allow_notifications" style="@style/Button.Tonal"
+                    android:layout_marginStart="16dp" android:text="@string/allow" />
+            </LinearLayout>
             <LinearLayout style="@style/Row" android:orientation="horizontal" android:screenReaderFocusable="true">
                 <TextView android:id="@+id/tile_text" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_weight="1" android:textSize="16sp"
@@ -54,6 +62,7 @@
                 <Button android:id="@+id/add_tile" style="@style/Button.Tonal" android:layout_marginStart="16dp"
                     android:text="@string/add_tile" />
             </LinearLayout>
+            <TextView android:id="@+id/advanced" style="@style/Row.Link" android:drawableEnd="@drawable/ic_chevron" />
         </LinearLayout>
 
         <TextView style="@style/Text.Section" android:text="@string/help" />

@@ -12,36 +12,61 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import rikka.shizuku.Shizuku;
 
 final class RouteController {
-    enum State { UNAVAILABLE, WORKING, READY, ACTIVE, RECOVERY, BLOCKED }
+    enum State { SETUP, WORKING, RECOVERY, ERROR, READY, CALL }
+
+    record Side(Device wanted, List<Device> actual, boolean foreign) {
+        boolean split() { return wanted != null && RouteTrial.holds(actual, wanted); }
+    }
+
+    record Status(boolean call, List<Device> devices, String app, String choice, boolean picked,
+                  Side mic, Side headphones, List<Device> refused) {
+        Side side(boolean input) { return input ? mic : headphones; }
+        boolean split() { return mic.split() || headphones.split(); }
+    }
 
     private final Context context;
+    private final Settings settings;
     private final SharedPreferences journal;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final List<Runnable> listeners = new ArrayList<>();
-    private IRouteService service;
-    private boolean busy;
-    private boolean changing;
-    private boolean binding;
+    private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged = (prefs, key) -> refresh();
     private final Runnable connectionTimeout = this::connectionTimedOut;
-    private Bundle inspection;
-    private String message;
     private final Shizuku.UserServiceArgs arguments = new Shizuku.UserServiceArgs(
             new ComponentName("com.github.meatcar.splitvoice", RouteService.class.getName()))
-            .daemon(false).processNameSuffix("routes").debuggable(false).version(1);
+            .daemon(false).processNameSuffix("routes").debuggable(false).version(2);
+    private IRouteService service;
+    private boolean busy;
+    private boolean dirty;
+    private boolean binding;
+    private Status status;
+    private String message;
+    private volatile String pick;
+    private final Map<String, Device> refused = new LinkedHashMap<>();
+    private String app;
 
     RouteController(Context context) {
         this.context = context.getApplicationContext();
+        settings = new Settings(this.context);
         message = string(R.string.start_shizuku);
-        journal = context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
+        journal = this.context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE);
+        migrateJournal();
+        this.context.getSharedPreferences(Settings.NAME, Context.MODE_PRIVATE)
+                .registerOnSharedPreferenceChangeListener(settingsChanged);
         Shizuku.addBinderReceivedListenerSticky(() -> main.post(this::refresh));
         Shizuku.addBinderDeadListener(() -> main.post(this::disconnected));
         Shizuku.addRequestPermissionResultListener((request, result) -> {
@@ -58,6 +83,7 @@ final class RouteController {
                 main.removeCallbacks(connectionTimeout);
                 binding = false;
                 service = IRouteService.Stub.asInterface(binder);
+                message = null;
                 refresh();
             });
         }
@@ -68,15 +94,15 @@ final class RouteController {
         main.removeCallbacks(connectionTimeout);
         service = null;
         binding = false;
-        inspection = null;
-        show(pending() ? string(R.string.start_shizuku_restore) : string(R.string.start_shizuku));
+        status = null;
+        show(string(pending() ? R.string.start_shizuku_restore : R.string.start_shizuku));
     }
 
     void connect(boolean allowPermissionPrompt) {
-        if (busy || binding || service != null) return;
+        if (binding || service != null) return;
         try {
             if (!Shizuku.pingBinder()) {
-                show(pending() ? string(R.string.start_shizuku_restore) : string(R.string.start_shizuku));
+                show(string(pending() ? R.string.start_shizuku_restore : R.string.start_shizuku));
                 return;
             }
             if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
@@ -109,121 +135,265 @@ final class RouteController {
 
     void refresh() {
         if (service == null) connect(false);
-        else execute(false, false);
+        else reconcile();
     }
 
-    void toggle() { execute(true, pending()); }
-    void restore() { if (pending()) execute(true, true); }
+    void pickForCall(String choice) {
+        pick = status != null && choice.equals(settings.choiceFor(status.app())) ? null : choice;
+        refresh();
+    }
 
-    private void execute(boolean change, boolean restoring) {
-        if (busy || binding || service == null) return;
-        IRouteService remote = service;
+    private void reconcile() {
+        if (binding || service == null) return;
+        if (busy) {
+            dirty = true;
+            return;
+        }
         busy = true;
-        changing = change;
-        if (change) show(restoring ? string(R.string.restoring) : string(R.string.applying));
-        else notifyListeners();
+        dirty = false;
+        IRouteService remote = service;
+        if (status == null) notifyListeners();
         worker.execute(() -> {
-            Bundle checked = null;
-            String outcome = null;
-            boolean transportLost = false;
+            Status result = null;
+            String failure = null;
+            boolean lost = false;
             try {
-                if (change) {
-                    Bundle result;
-                    if (restoring) {
-                        result = remote.restore(journal.getString("receiver", null), journal.getString("earbuds", null));
-                        requireSuccess(result);
-                        RouteTrial.require(journal.edit().clear().commit(), string(R.string.record_not_cleared));
-                    } else {
-                        Bundle selection = remote.inspect(null, null);
-                        requireSuccess(selection);
-                        RouteTrial.require(selection.getBoolean("empty"), string(R.string.existing_preferences));
-                        RouteTrial.require(selection.getBoolean("devicesReady"), string(R.string.connect_exactly_one));
-                        RouteTrial.require(selection.getInt("mode") == AudioManager.MODE_IN_COMMUNICATION, string(R.string.start_voice));
-                        RouteTrial.require(!selection.getBoolean("sco"), string(R.string.sco_active));
-                        String receiver = selection.getString("receiver");
-                        String earbuds = selection.getString("earbuds");
-                        RouteTrial.require(receiver != null && earbuds != null, string(R.string.identities_unavailable));
-                        RouteTrial.require(journal.edit().putBoolean("pending", true)
-                                .putString("receiver", receiver).putString("earbuds", earbuds).commit(),
-                                string(R.string.cannot_save_recovery));
-                        result = remote.apply(receiver, earbuds);
-                        requireSuccess(result);
-                    }
-                    outcome = result.getString("message");
-                }
-                checked = remote.inspect(journal.getString("receiver", null), journal.getString("earbuds", null));
-                requireSuccess(checked);
+                result = reconcile(remote);
+            } catch (RemoteException e) {
+                lost = true;
+            } catch (IllegalStateException e) {
+                failure = e.getMessage();
             } catch (Exception e) {
-                checked = null;
-                transportLost = e instanceof RemoteException;
-                outcome = e instanceof IllegalStateException ? e.getMessage()
-                        : string(R.string.connection_failed);
+                failure = string(R.string.connection_failed);
             }
-            Bundle completed = checked;
-            String feedback = outcome;
-            boolean disconnected = transportLost;
+            Status completed = result;
+            String error = failure;
+            boolean disconnected = lost;
             main.post(() -> {
                 busy = false;
-                changing = false;
-                if (disconnected && remote == service) disconnected();
-                inspection = remote == service ? completed : null;
-                if (remote != service) show(pending() ? string(R.string.reconnect_restore) : string(R.string.reconnect));
-                else show(feedback == null ? guidance() : feedback);
+                if (remote != service) return;
+                if (disconnected) {
+                    disconnected();
+                    return;
+                }
+                if (completed != null && !completed.call()) pick = null;
+                status = completed;
+                message = error;
+                notifyListeners();
+                if (dirty) reconcile();
             });
         });
     }
 
-    private String string(int id, Object... args) { return context.getString(id, args); }
+    private Status reconcile(IRouteService remote) throws Exception {
+        Bundle inspected = require(remote.inspect());
+        boolean call = inspected.getInt("mode") == AudioManager.MODE_IN_COMMUNICATION;
+        List<Device> devices = Device.fromBundles(inspected, "devices");
+        String picked = call ? pick : null;
+        if (!call) {
+            refused.clear();
+            app = null;
+        } else if (inspected.getString("app") != null) {
+            app = inspected.getString("app");
+            settings.markSeen(app);
+        }
+        String choice = call ? (picked != null && settings.valid(picked) ? picked : settings.choiceFor(app)) : Settings.OFF;
+        while (true) {
+            Routing.Plan plan = Routing.plan(choice, settings.profile(choice), devices, refused.keySet());
+            List<Device> mics = recorded("input");
+            List<Device> outs = recorded("output");
+            record(with(mics, plan.mic()), with(outs, plan.headphones()));
+            Bundle request = new Bundle();
+            request.putParcelableArrayList("inputExpected", Device.bundles(mics));
+            request.putParcelableArrayList("outputExpected", Device.bundles(outs));
+            if (plan.mic() != null) request.putBundle("inputWanted", plan.mic().toBundle());
+            if (plan.headphones() != null) request.putBundle("outputWanted", plan.headphones().toBundle());
+            Bundle routed = require(remote.route(request));
+            record(owned(routed, "input"), owned(routed, "output"));
+            boolean retry = false;
+            for (boolean input : new boolean[]{true, false}) {
+                Device wanted = plan.side(input);
+                if (wanted != null && routed.getBoolean((input ? "input" : "output") + "Refused")) {
+                    refused.put(wanted.key(), wanted);
+                    retry = true;
+                }
+            }
+            if (!retry) {
+                return new Status(call, devices, app, choice, picked != null && picked.equals(choice),
+                        side(plan.mic(), routed, "input"), side(plan.headphones(), routed, "output"),
+                        List.copyOf(refused.values()));
+            }
+        }
+    }
 
-    private void requireSuccess(Bundle result) {
+    private static Side side(Device wanted, Bundle routed, String key) {
+        return new Side(wanted, Device.fromBundles(routed, key), routed.getBoolean(key + "Foreign"));
+    }
+
+    private static List<Device> with(List<Device> devices, Device device) {
+        List<Device> result = new ArrayList<>(devices);
+        if (device != null && devices.stream().noneMatch(device::sameEndpoint)) result.add(device);
+        return result;
+    }
+
+    private static List<Device> owned(Bundle routed, String side) {
+        Device device = Device.fromBundle(routed.getBundle(side + "Owned"));
+        return device == null ? List.of() : List.of(device);
+    }
+
+    private List<Device> recorded(String side) {
+        List<Device> result = new ArrayList<>();
+        try {
+            JSONArray array = new JSONArray(journal.getString(side, "[]"));
+            for (int i = 0; i < array.length(); i++) result.add(Device.fromJson(array.getJSONObject(i)));
+        } catch (JSONException e) {
+            // NOTE: unreadable record; the next route call rewrites it
+        }
+        return result;
+    }
+
+    private void record(List<Device> inputs, List<Device> outputs) throws JSONException {
+        RouteTrial.require(journal.edit().putString("input", json(inputs)).putString("output", json(outputs)).commit(),
+                string(R.string.cannot_save_recovery));
+    }
+
+    private static String json(List<Device> devices) throws JSONException {
+        JSONArray array = new JSONArray();
+        for (Device device : devices) array.put(device.toJson());
+        return array.toString();
+    }
+
+    // NOTE: 0.1.35 and earlier recorded one USB receiver and one LE Audio headset
+    private void migrateJournal() {
+        if (!journal.getBoolean("pending", false)) return;
+        String receiver = journal.getString("receiver", null);
+        String earbuds = journal.getString("earbuds", null);
+        try {
+            SharedPreferences.Editor editor = journal.edit().clear();
+            if (receiver != null) editor.putString("input",
+                    json(List.of(new Device(0, true, android.media.AudioDeviceInfo.TYPE_USB_DEVICE, receiver, ""))));
+            if (earbuds != null) editor.putString("output",
+                    json(List.of(new Device(0, false, android.media.AudioDeviceInfo.TYPE_BLE_HEADSET, earbuds, ""))));
+            editor.apply();
+        } catch (JSONException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private Bundle require(Bundle result) {
         RouteTrial.require(result != null && result.getBoolean("ok"),
                 result == null ? string(R.string.no_result) : result.getString("message", string(R.string.check_failed)));
+        return result;
     }
 
-    /** Background checks keep the last state, so the tile and screen do not flicker. */
+    private String string(int id, Object... args) { return context.getString(id, args); }
+
     State state() {
-        if (changing || binding || (service != null && inspection == null && busy)) return State.WORKING;
-        if (pending()) return inspection != null && inspection.getBoolean("matches") ? State.ACTIVE : State.RECOVERY;
-        if (service == null) return State.UNAVAILABLE;
-        if (inspection == null) return State.BLOCKED;
-        return inspection.getBoolean("empty") && inspection.getBoolean("devicesReady") && !inspection.getBoolean("sco")
-                ? State.READY : State.BLOCKED;
+        if (binding || (service != null && status == null && busy)) return State.WORKING;
+        if (service == null) return pending() ? State.RECOVERY : State.SETUP;
+        if (status == null) return State.ERROR;
+        return status.call() ? State.CALL : State.READY;
     }
 
-    String title() { return string(title(state())); }
+    List<String> choices() {
+        List<String> result = new ArrayList<>();
+        result.add(Settings.AUTO);
+        for (Profile profile : settings.profiles()) result.add(profile.id());
+        result.add(Settings.OFF);
+        return result;
+    }
 
-    static int title(State state) {
-        return switch (state) {
-            case UNAVAILABLE -> R.string.title_setup;
-            case WORKING -> R.string.title_working;
-            case READY -> R.string.title_ready;
-            case ACTIVE -> R.string.title_active;
-            case RECOVERY -> R.string.title_recovery;
-            case BLOCKED -> R.string.title_blocked;
+    String nextChoice() {
+        List<String> choices = choices();
+        int index = choices.indexOf(status == null ? Settings.AUTO : status.choice());
+        for (int step = 1; step <= choices.size(); step++) {
+            String choice = choices.get((index + step) % choices.size());
+            Profile profile = settings.profile(choice);
+            if (profile == null || status == null) return choice;
+            Routing.Plan plan = Routing.plan(choice, profile, status.devices(), Set.of());
+            if (plan.mic() != null || plan.headphones() != null) return choice;
+        }
+        return Settings.OFF;
+    }
+
+    record Line(String device, String why) {}
+
+    String headline() {
+        return switch (state()) {
+            case SETUP -> string(R.string.title_setup);
+            case WORKING -> string(R.string.title_working);
+            case RECOVERY -> string(R.string.title_recovery);
+            case ERROR -> string(R.string.title_error);
+            case READY -> string(settings.anythingOn() ? R.string.title_ready : R.string.title_off);
+            case CALL -> string(Settings.OFF.equals(status.choice()) ? R.string.title_off
+                    : status.split() ? R.string.title_split : R.string.title_not_split);
         };
     }
 
-    private String guidance() {
-        if (pending()) return string(R.string.stop_voice);
-        if (inspection == null) return string(R.string.reconnect);
-        if (!inspection.getBoolean("empty")) return string(R.string.other_app_preferences);
-        if (!inspection.getBoolean("devicesReady")) return string(R.string.connect_one);
-        if (inspection.getBoolean("sco")) return string(R.string.bluetooth_mic);
-        return string(R.string.start_voice_tap_tile);
+    String detail() {
+        State state = state();
+        if (state == State.CALL) {
+            String detail = string(R.string.call_detail, appLabel(status.app()), label(status.choice()));
+            return status.picked() ? string(R.string.call_detail_picked, detail) : detail;
+        }
+        if (message != null) return message;
+        if (state == State.READY) return string(settings.anythingOn() ? R.string.ready_detail : R.string.off_detail);
+        return "";
     }
 
-    boolean shizukuRunning() { return Shizuku.pingBinder(); }
-    boolean permissionGranted() {
-        try { return Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED; }
-        catch (RuntimeException e) { return false; }
+    Line line(boolean input) {
+        Side side = status.side(input);
+        List<String> refusedHere = new ArrayList<>();
+        for (Device device : status.refused()) if (device.input() == input) refusedHere.add(device.label(context));
+        if (side.foreign()) {
+            Device chosen = side.actual().isEmpty() ? null : withName(side.actual().get(0));
+            return new Line(chosen == null ? string(R.string.android_choice) : chosen.label(context),
+                    string(R.string.why_foreign));
+        }
+        if (side.wanted() != null) return new Line(side.wanted().label(context), refused(refusedHere));
+        String why;
+        if (!refusedHere.isEmpty()) why = refused(refusedHere);
+        else if (Settings.AUTO.equals(status.choice())) {
+            why = input ? string(R.string.why_no_external_mic)
+                    : status.mic().wanted() != null ? string(R.string.why_no_headphones) : null;
+        } else {
+            Profile profile = settings.profile(status.choice());
+            why = profile == null || profile.side(input).isEmpty() ? null
+                    : string(input ? R.string.why_no_profile_mic : R.string.why_no_profile_headphones);
+        }
+        return new Line(string(R.string.android_choice), why);
     }
-    boolean pending() { return journal.getBoolean("pending", false); }
+
+    private String refused(List<String> devices) {
+        return devices.isEmpty() ? null : string(R.string.why_refused, String.join(", ", devices));
+    }
+
+    String label(String choice) {
+        if (Settings.AUTO.equals(choice)) return string(R.string.choice_auto);
+        Profile profile = settings.profile(choice);
+        return profile == null ? string(R.string.choice_off) : profile.name();
+    }
+
+    String appLabel(String packageName) {
+        if (packageName == null) return string(R.string.unknown_app);
+        PackageManager packages = context.getPackageManager();
+        try { return packages.getApplicationLabel(packages.getApplicationInfo(packageName, 0)).toString(); }
+        catch (PackageManager.NameNotFoundException e) { return packageName; }
+    }
+
+    Device withName(Device device) {
+        if (device == null || status == null) return device;
+        for (Device connected : status.devices()) if (connected.sameEndpoint(device)) return connected;
+        return device;
+    }
+
+    Settings settings() { return settings; }
+    boolean shizukuRunning() { return Shizuku.pingBinder(); }
+    boolean pending() { return !recorded("input").isEmpty() || !recorded("output").isEmpty(); }
     boolean busy() { return busy || binding; }
     boolean connected() { return service != null; }
     String message() { return message; }
-    Bundle inspection() { return inspection; }
-    /** The audio mode from the last inspection, or -1 when unknown. */
-    int mode() { return inspection == null ? -1 : inspection.getInt("mode", -1); }
+    Status status() { return status; }
     void observe(Runnable listener) { listeners.add(listener); listener.run(); }
     void removeObserver(Runnable listener) { listeners.remove(listener); }
     private void show(String value) { message = value; notifyListeners(); }

@@ -7,13 +7,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
-import android.widget.Toast;
 
 public final class SplitTileService extends TileService {
     private final Handler main = new Handler(Looper.getMainLooper());
     private RouteController routes;
     private boolean listening;
-    private boolean awaitingFeedback;
     private final Runnable listener = this::update;
     private final Runnable poll = new Runnable() {
         @Override public void run() {
@@ -57,7 +55,6 @@ public final class SplitTileService extends TileService {
 
     @Override public void onStopListening() {
         listening = false;
-        awaitingFeedback = false;
         main.removeCallbacks(poll);
         routes.removeObserver(listener);
         super.onStopListening();
@@ -75,17 +72,8 @@ public final class SplitTileService extends TileService {
     }
 
     private void act() {
-        switch (routes.state()) {
-            case WORKING -> { }
-            case READY, ACTIVE -> toggle();
-            case RECOVERY -> { if (routes.connected()) toggle(); else openApp(); }
-            case UNAVAILABLE, BLOCKED -> openApp();
-        }
-    }
-
-    private void toggle() {
-        awaitingFeedback = true;
-        routes.toggle();
+        if (routes.state() == RouteController.State.CALL) routes.pickForCall(routes.nextChoice());
+        else openApp();
     }
 
     private void openApp() {
@@ -98,26 +86,18 @@ public final class SplitTileService extends TileService {
         Tile tile = getQsTile();
         if (tile == null) return;
         RouteController.State state = routes.state();
-        tile.setState(switch (state) {
-            case ACTIVE -> Tile.STATE_ACTIVE;
-            case WORKING -> Tile.STATE_UNAVAILABLE;
-            default -> Tile.STATE_INACTIVE;
-        });
-        String subtitle = getString(switch (state) {
-            case UNAVAILABLE -> R.string.tile_state_setup;
-            case WORKING -> R.string.tile_state_working;
-            case READY -> R.string.tile_state_off;
-            case ACTIVE -> R.string.tile_state_on;
-            case RECOVERY -> R.string.tile_state_restore;
-            case BLOCKED -> R.string.tile_state_blocked;
-        });
+        RouteController.Status status = routes.status();
+        boolean split = state == RouteController.State.CALL && status.split();
+        tile.setState(split ? Tile.STATE_ACTIVE
+                : state == RouteController.State.WORKING ? Tile.STATE_UNAVAILABLE : Tile.STATE_INACTIVE);
+        String subtitle = split ? routes.label(status.choice()) : switch (state) {
+            case SETUP -> getString(R.string.tile_state_setup);
+            case ERROR -> getString(R.string.tile_state_blocked);
+            default -> routes.headline();
+        };
         tile.setLabel(getString(R.string.app_name));
         tile.setSubtitle(subtitle);
-        tile.setStateDescription(subtitle + ". " + routes.message());
+        tile.setStateDescription(subtitle + ". " + routes.detail());
         tile.updateTile();
-        if (awaitingFeedback && !routes.busy()) {
-            awaitingFeedback = false;
-            Toast.makeText(this, routes.message(), Toast.LENGTH_LONG).show();
-        }
     }
 }

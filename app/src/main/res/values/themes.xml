@@ -81,6 +81,14 @@
         <item name="android:clickable">true</item>
     </style>
 
+    <style name="IconButton">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:background">@drawable/icon_button</item>
+        <item name="android:tint">@color/on_surface_variant</item>
+    </style>
+
     <style name="Switch" parent="android:Widget.Material.CompoundButton.Switch">
         <item name="android:thumb">@drawable/switch_thumb</item>
         <item name="android:track">@drawable/switch_track</item>

@@ -4,8 +4,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.os.Build;
-import android.os.Bundle;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -37,26 +37,36 @@ final class Diagnostics {
         add(out, "Phone", Build.MANUFACTURER + " " + Build.MODEL);
         add(out, "Build", Build.DISPLAY);
         add(out, "Shizuku", shizuku());
-        add(out, "State", routes.title() + ": " + routes.message());
+        add(out, "State", routes.headline() + ": " + (routes.message() == null ? "" : routes.message()));
         add(out, "Recovery pending", String.valueOf(routes.pending()));
-        Bundle inspection = routes.inspection();
-        if (inspection == null) add(out, "Routes", "not inspected");
+        RouteController.Status status = routes.status();
+        if (status == null) add(out, "Routes", "not inspected");
         else {
-            add(out, "Audio mode", String.valueOf(inspection.getInt("mode")));
-            add(out, "Bluetooth SCO", String.valueOf(inspection.getBoolean("sco")));
-            add(out, "No preferences set", String.valueOf(inspection.getBoolean("empty")));
-            add(out, "One receiver and one LE headset", String.valueOf(inspection.getBoolean("devicesReady")));
-            add(out, "Split matches", String.valueOf(inspection.getBoolean("matches")));
-            add(out, "Input types", types(inspection.getIntArray("inputTypes")));
-            add(out, "Output types", types(inspection.getIntArray("outputTypes")));
+            add(out, "Voice chat", String.valueOf(status.call()));
+            add(out, "Voice app", status.app() == null ? "unknown" : "detected");
+            add(out, "Using", routes.label(status.choice()) + (status.picked() ? " (this call)" : ""));
+            add(out, "Mic", side(status.mic()));
+            add(out, "Headphones", side(status.headphones()));
+            add(out, "Refused", types(status.refused()));
+            add(out, "Inputs", types(status.devices().stream().filter(Device::input).toList()));
+            add(out, "Outputs", types(status.devices().stream().filter(device -> !device.input()).toList()));
         }
         return out.toString();
     }
 
-    static String types(int[] values) {
-        if (values == null || values.length == 0) return "none";
+    private static String side(RouteController.Side side) {
+        String actual = types(side.actual());
+        if (side.foreign()) return "another app chose " + actual;
+        if (side.wanted() == null) return "Android's choice" + (side.actual().isEmpty() ? "" : ", set to " + actual);
+        return (side.split() ? "set to " : "not kept: ") + type(side.wanted().type());
+    }
+
+    static String type(int value) { return TYPES.getOrDefault(value, "type " + value); }
+
+    static String types(List<Device> devices) {
+        if (devices.isEmpty()) return "none";
         StringJoiner joiner = new StringJoiner(", ");
-        for (int value : values) joiner.add(TYPES.getOrDefault(value, "type " + value));
+        for (Device device : devices) joiner.add(type(device.type()));
         return joiner.toString();
     }
 

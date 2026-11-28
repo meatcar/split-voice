@@ -1,66 +1,62 @@
 package com.github.meatcar.splitvoice;
 
-import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
+import android.os.Bundle;
 
 import java.util.List;
 
 final class RouteTrial {
-    static final int ROLE_INPUT = 1;
-    static final int ROLE_OUTPUT = 2;
-
-    record Device(int role, int type, String address) {
-        static Device receiver(String address) { return new Device(ROLE_INPUT, AudioDeviceInfo.TYPE_USB_DEVICE, address); }
-        static Device headphones(String address) { return new Device(ROLE_OUTPUT, AudioDeviceInfo.TYPE_BLE_HEADSET, address); }
-    }
-
     interface Backend {
         int mode() throws Exception;
         boolean sco() throws Exception;
-        List<Device> input() throws Exception;
-        List<Device> output() throws Exception;
-        void input(List<Device> devices) throws Exception;
-        void output(List<Device> devices) throws Exception;
+        List<Device> devices() throws Exception;
+        String voiceApp() throws Exception;
+        List<Device> preferences(boolean input) throws Exception;
+        void prefer(boolean input, Device device) throws Exception;
     }
 
-    static void apply(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == AudioManager.MODE_IN_COMMUNICATION, "Start a voice chat first. Nothing changed.");
-        require(!backend.sco(), "Your headphones' own mic is in use. Nothing changed.");
-        require(backend.input().isEmpty() && backend.output().isEmpty(),
-                "Another app already chose audio devices. Nothing changed.");
-        backend.input(List.of(receiver));
-        require(backend.input().equals(List.of(receiver)), "Android did not keep the mic choice. End the voice chat, then tap Restore.");
-        backend.output(List.of(earbuds));
-        require(matches(backend, receiver, earbuds),
-                "Android did not keep the headphone choice. End the voice chat, then tap Restore.");
+    static void inspect(Backend backend, Bundle result) throws Exception {
+        result.putParcelableArrayList("devices", Device.bundles(backend.devices()));
+        result.putParcelableArrayList("input", Device.bundles(backend.preferences(true)));
+        result.putParcelableArrayList("output", Device.bundles(backend.preferences(false)));
+        result.putInt("mode", backend.mode());
+        result.putBoolean("sco", backend.sco());
+        result.putString("app", backend.voiceApp());
     }
 
-    static boolean matches(Backend backend, Device receiver, Device earbuds) throws Exception {
-        return backend.input().equals(List.of(receiver)) && backend.output().equals(List.of(earbuds));
-    }
-
-    static void restore(Backend backend, Device receiver, Device earbuds) throws Exception {
-        require(backend.mode() == AudioManager.MODE_NORMAL, "End the voice chat first. Nothing changed.");
-        require(compatible(backend.input(), receiver) && compatible(backend.output(), earbuds),
-                "Another app changed audio devices after the split. Split Voice will not override it.");
-        Exception failure = null;
-        try {
-            backend.output(List.of());
-        } catch (Exception e) {
-            failure = e;
+    static void route(Backend backend, Bundle request, Bundle result) throws Exception {
+        for (String side : new String[]{"input", "output"}) {
+            Side outcome = route(backend, side.equals("input"), Device.fromBundles(request, side + "Expected"),
+                    Device.fromBundle(request.getBundle(side + "Wanted")));
+            result.putBundle(side + "Owned", outcome.owned() == null ? null : outcome.owned().toBundle());
+            result.putParcelableArrayList(side, Device.bundles(outcome.actual()));
+            result.putBoolean(side + "Foreign", outcome.foreign());
+            result.putBoolean(side + "Refused", outcome.refused());
         }
-        try {
-            backend.input(List.of());
-        } catch (Exception e) {
-            if (failure == null) failure = e;
-            else failure.addSuppressed(e);
-        }
-        if (failure != null) throw failure;
-        require(backend.input().isEmpty() && backend.output().isEmpty(), "Android did not confirm the restore. Tap Restore again.");
     }
 
-    private static boolean compatible(List<Device> actual, Device expected) {
-        return actual.isEmpty() || actual.equals(List.of(expected));
+    record Side(Device owned, List<Device> actual, boolean foreign, boolean refused) {}
+
+    // NOTE: compare-and-set; a preference that is neither ours nor empty belongs to another app
+    static Side route(Backend backend, boolean input, List<Device> expected, Device wanted) throws Exception {
+        if (backend.mode() != AudioManager.MODE_IN_COMMUNICATION) wanted = null;
+        List<Device> current = backend.preferences(input);
+        boolean ours = expected.stream().anyMatch(device -> holds(current, device));
+        if (holds(current, wanted)) return new Side(ours ? wanted : null, current, false, false);
+        if (!current.isEmpty() && !ours) return new Side(null, current, true, false);
+        try {
+            backend.prefer(input, wanted);
+        } catch (IllegalStateException refused) {
+            // NOTE: audio policy rejects some devices outright; the readback below decides
+        }
+        List<Device> after = backend.preferences(input);
+        Device owned = after.size() == 1 && (after.get(0).sameEndpoint(wanted)
+                || expected.stream().anyMatch(after.get(0)::sameEndpoint)) ? after.get(0) : null;
+        return new Side(owned, after, false, !holds(after, wanted));
+    }
+
+    static boolean holds(List<Device> preferences, Device device) {
+        return device == null ? preferences.isEmpty() : preferences.size() == 1 && preferences.get(0).sameEndpoint(device);
     }
 
     static void require(boolean condition, String message) {

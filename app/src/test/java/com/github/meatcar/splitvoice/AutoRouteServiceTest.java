@@ -11,6 +11,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.List;
+
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -18,32 +20,49 @@ import static org.robolectric.Shadows.shadowOf;
 @Config(sdk = {36, 37})
 public class AutoRouteServiceTest {
     private final Context context = RuntimeEnvironment.getApplication();
+    private final Settings settings = new Settings(context);
 
-    @Test public void runsInTheForegroundOnlyWhileAutomaticSplitIsOn() {
-        AutoRoute.setEnabled(context, true);
+    private RouteController routes() { return ((SplitVoiceApplication) context).routes(); }
+
+    @Test public void runsInTheForegroundByDefault() {
         var controller = Robolectric.buildService(AutoRouteService.class).create().startCommand(0, 1);
         Notification shown = shadowOf(controller.get()).getLastForegroundNotification();
         assertNotNull(shown);
-        assertEquals("Automatic split is on", shown.extras.getString(Notification.EXTRA_TITLE));
         assertFalse(shadowOf(controller.get()).isStoppedBySelf());
         controller.destroy();
     }
 
-    @Test public void stopsItselfWhenTheSettingWasTurnedOff() {
-        AutoRoute.setEnabled(context, false);
+    @Test public void stopsWhenEveryChoiceIsOffAndNothingNeedsRestoring() {
+        settings.setAllApps(Settings.OFF);
         var controller = Robolectric.buildService(AutoRouteService.class).create().startCommand(0, 1);
         assertTrue(shadowOf(controller.get()).isStoppedBySelf());
         controller.destroy();
     }
 
-    @Test public void syncStartsAndStopsTheService() {
+    @Test public void staysForAPendingRestoreEvenWhenOff() {
+        settings.setAllApps(Settings.OFF);
+        assertTrue(context.getSharedPreferences("routing-recovery", Context.MODE_PRIVATE).edit()
+                .putString("input", "[{\"input\":true,\"type\":11,\"address\":\"card=1\",\"name\":\"\"}]").commit());
+        var controller = Robolectric.buildService(AutoRouteService.class).create().startCommand(0, 1);
+        assertFalse(shadowOf(controller.get()).isStoppedBySelf());
+        controller.destroy();
+    }
+
+    @Test public void syncFollowsTheSettings() {
         var app = shadowOf(RuntimeEnvironment.getApplication());
-        AutoRoute.setEnabled(context, true);
-        AutoRouteService.sync(context);
+        AutoRouteService.sync(context, routes());
         Intent started = app.getNextStartedService();
         assertEquals(AutoRouteService.class.getName(), started.getComponent().getClassName());
-        AutoRoute.setEnabled(context, false);
-        AutoRouteService.sync(context);
+        settings.setAllApps(Settings.OFF);
+        AutoRouteService.sync(context, routes());
         assertEquals(AutoRouteService.class.getName(), app.getNextStoppedService().getComponent().getClassName());
+    }
+
+    @Test public void callActionsOfferOtherChoicesWithOffLast() {
+        assertEquals(List.of(Settings.AUTO, "b", Settings.OFF),
+                AutoRouteService.actions(List.of(Settings.AUTO, "a", "b", "c", "d", Settings.OFF), "a"));
+        assertEquals(List.of(Settings.AUTO, "a", "b"),
+                AutoRouteService.actions(List.of(Settings.AUTO, "a", "b", "c", Settings.OFF), Settings.OFF));
+        assertEquals(List.of(Settings.OFF), AutoRouteService.actions(List.of(Settings.AUTO, Settings.OFF), Settings.AUTO));
     }
 }
